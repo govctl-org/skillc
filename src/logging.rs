@@ -288,4 +288,114 @@ mod tests {
         assert!(run_id.contains('Z'));
         assert!(run_id.contains('-'));
     }
+
+    #[test]
+    fn test_try_log_access() {
+        let temp = TempDir::new().expect("create temp dir");
+        let runtime_dir = temp.path().join("runtime");
+
+        let conn = init_log_db(&runtime_dir).expect("create db");
+
+        let entry = LogEntry {
+            run_id: "test-run-123".to_string(),
+            command: "outline".to_string(),
+            skill: "test-skill".to_string(),
+            skill_path: "/path/to/skill".to_string(),
+            cwd: "/current/dir".to_string(),
+            args: r#"{"section": "API"}"#.to_string(),
+            error: None,
+        };
+
+        try_log_access(&conn, &entry).expect("log access should succeed");
+
+        // Verify entry was inserted
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM access_log", [], |row| row.get(0))
+            .expect("count rows");
+        assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn test_try_log_access_with_error() {
+        let temp = TempDir::new().expect("create temp dir");
+        let runtime_dir = temp.path().join("runtime");
+
+        let conn = init_log_db(&runtime_dir).expect("create db");
+
+        let entry = LogEntry {
+            run_id: "error-run".to_string(),
+            command: "show".to_string(),
+            skill: "error-skill".to_string(),
+            skill_path: "/path".to_string(),
+            cwd: "/cwd".to_string(),
+            args: "{}".to_string(),
+            error: Some("E001: skill not found".to_string()),
+        };
+
+        try_log_access(&conn, &entry).expect("log access should succeed");
+
+        // Verify error was stored
+        let error: Option<String> = conn
+            .query_row(
+                "SELECT error FROM access_log WHERE run_id = 'error-run'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("query error");
+        assert_eq!(error, Some("E001: skill not found".to_string()));
+    }
+
+    #[test]
+    fn test_log_access_legacy() {
+        let temp = TempDir::new().expect("create temp dir");
+        let runtime_dir = temp.path().join("runtime");
+
+        let conn = init_log_db(&runtime_dir).expect("create db");
+
+        let entry = LogEntry {
+            run_id: "legacy-run".to_string(),
+            command: "search".to_string(),
+            skill: "legacy-skill".to_string(),
+            skill_path: "/path".to_string(),
+            cwd: "/cwd".to_string(),
+            args: r#"{"query": "test"}"#.to_string(),
+            error: None,
+        };
+
+        // Legacy function should not panic
+        log_access(&conn, &entry);
+
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM access_log", [], |row| row.get(0))
+            .expect("count rows");
+        assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn test_is_readonly_error() {
+        // Create a non-readonly error
+        let other_error = rusqlite::Error::InvalidQuery;
+        assert!(!is_readonly_error(&other_error));
+    }
+
+    #[test]
+    fn test_init_log_db_creates_directories() {
+        let temp = TempDir::new().expect("create temp dir");
+        let runtime_dir = temp.path().join("deep").join("nested").join("runtime");
+
+        // Directory doesn't exist yet
+        assert!(!runtime_dir.exists());
+
+        let conn = init_log_db(&runtime_dir);
+        assert!(conn.is_some(), "should create db even with nested dirs");
+
+        // Verify meta dir was created
+        let meta_dir = runtime_dir.join(".skillc-meta");
+        assert!(meta_dir.exists(), "meta dir should exist");
+        assert!(meta_dir.join("logs.db").exists(), "db file should exist");
+    }
+
+    // Note: We don't test get_run_id with env var override here because
+    // tests run in parallel and modifying env vars causes race conditions.
+    // The env var logic is trivial and tested implicitly via integration tests.
 }

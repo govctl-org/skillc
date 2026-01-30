@@ -36,7 +36,7 @@ repos:
         pass_filenames: false
       - id: cargo-test
         name: cargo test runner
-        entry: cargo test --workspace
+        entry: cargo test --workspace --quiet
         language: system
         pass_filenames: false
         env:

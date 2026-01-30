@@ -1,0 +1,32 @@
+---
+source: tests/integration_stats.rs
+expression: search
+---
+{
+  "data": [
+    {
+      "count": 2,
+      "query": "getting started"
+    },
+    {
+      "count": 1,
+      "query": "api"
+    },
+    {
+      "count": 1,
+      "query": "performance"
+    }
+  ],
+  "filters": {
+    "projects": [],
+    "since": null,
+    "until": null
+  },
+  "period": {
+    "end": "<TS>",
+    "start": "<TS>"
+  },
+  "query": "search",
+  "skill": "test-skill",
+  "skill_path": "<TEMPDIR>/.skillc/skills/test-skill"
+}

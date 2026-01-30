@@ -466,3 +466,322 @@ fn test_mcp_tool_skill_not_found() {
         .expect("should have text");
     assert!(text.contains("E001"), "should have E001 error code");
 }
+
+/// Test skc_open tool
+#[test]
+fn test_mcp_open_tool() {
+    let temp = TempDir::new().expect("create temp dir");
+    create_minimal_skill(temp.path(), "open-skill");
+    let skill_path = temp.path().join("open-skill");
+
+    let mut client = McpTestClient::spawn();
+    client.initialize();
+
+    let response = client.call_tool(
+        "skc_open",
+        json!({
+            "skill": skill_path.to_str().expect("path to str"),
+            "path": "SKILL.md"
+        }),
+    );
+
+    assert!(response.get("result").is_some(), "should have result");
+    let result = response.get("result").expect("should have result");
+    let content = result.get("content").expect("should have content");
+    let content_array = content.as_array().expect("content should be array");
+    assert!(!content_array.is_empty(), "should have content items");
+
+    // Content should contain the skill file contents
+    let text = content_array[0]
+        .get("text")
+        .and_then(|t| t.as_str())
+        .expect("should have text");
+    assert!(text.contains("open-skill"), "should contain skill name");
+}
+
+/// Test skc_open tool with max_lines
+#[test]
+fn test_mcp_open_tool_with_max_lines() {
+    let temp = TempDir::new().expect("create temp dir");
+    let skill_name = "lines-skill";
+    common::create_project_skill(temp.path(), skill_name);
+
+    // Add more lines to the SKILL.md
+    let skill_md = temp
+        .path()
+        .join(".skillc")
+        .join("skills")
+        .join(skill_name)
+        .join("SKILL.md");
+    let content = (1..=20)
+        .map(|i| format!("Line {}", i))
+        .collect::<Vec<_>>()
+        .join("\n");
+    std::fs::write(
+        &skill_md,
+        format!(
+            "---\nname: {}\ndescription: test\n---\n# {}\n{}",
+            skill_name, skill_name, content
+        ),
+    )
+    .expect("write skill");
+
+    let mut client = McpTestClient::spawn_in_dir(temp.path());
+    client.initialize();
+
+    let response = client.call_tool(
+        "skc_open",
+        json!({
+            "skill": skill_name,
+            "path": "SKILL.md",
+            "max_lines": 5
+        }),
+    );
+
+    assert!(response.get("result").is_some(), "should have result");
+    let result = response.get("result").expect("should have result");
+    let content = result.get("content").expect("should have content");
+    let text = content[0]
+        .get("text")
+        .and_then(|t| t.as_str())
+        .expect("should have text");
+
+    // Should be truncated
+    assert!(
+        text.contains("... ("),
+        "should indicate truncation: {}",
+        text
+    );
+}
+
+/// Test skc_outline tool with level filter
+#[test]
+fn test_mcp_outline_tool_with_level() {
+    let temp = TempDir::new().expect("create temp dir");
+    let skill_name = "level-skill";
+
+    // Create skill in project structure
+    let skill_dir = temp.path().join(".skillc").join("skills").join(skill_name);
+    std::fs::create_dir_all(&skill_dir).expect("create skill dir");
+    std::fs::write(
+        skill_dir.join("SKILL.md"),
+        "---\nname: level-skill\ndescription: test\n---\n# H1\n## H2\n### H3\n#### H4",
+    )
+    .expect("write skill");
+
+    let mut client = McpTestClient::spawn_in_dir(temp.path());
+    client.initialize();
+
+    let response = client.call_tool(
+        "skc_outline",
+        json!({
+            "skill": skill_name,
+            "level": 2
+        }),
+    );
+
+    assert!(response.get("result").is_some(), "should have result");
+    let result = response.get("result").expect("should have result");
+    let content = result.get("content").expect("should have content");
+    let text = content[0]
+        .get("text")
+        .and_then(|t| t.as_str())
+        .expect("should have text");
+
+    let headings: Value = serde_json::from_str(text).expect("parse JSON");
+    let headings_arr = headings.as_array().expect("should be array");
+
+    // Should only have level 1 and 2 headings
+    for h in headings_arr {
+        let level = h
+            .get("level")
+            .and_then(|l| l.as_u64())
+            .expect("should have level");
+        assert!(level <= 2, "level should be <= 2, got {}", level);
+    }
+}
+
+/// Test skc_show tool with max_lines
+#[test]
+fn test_mcp_show_tool_with_max_lines() {
+    let temp = TempDir::new().expect("create temp dir");
+    let skill_name = "show-lines-skill";
+
+    // Create skill in project structure
+    let skill_dir = temp.path().join(".skillc").join("skills").join(skill_name);
+    std::fs::create_dir_all(&skill_dir).expect("create skill dir");
+    let lines = (1..=30)
+        .map(|i| format!("Content line {}", i))
+        .collect::<Vec<_>>()
+        .join("\n");
+    std::fs::write(
+        skill_dir.join("SKILL.md"),
+        format!(
+            "---\nname: {}\ndescription: test\n---\n# Main Section\n{}",
+            skill_name, lines
+        ),
+    )
+    .expect("write skill");
+
+    let mut client = McpTestClient::spawn_in_dir(temp.path());
+    client.initialize();
+
+    let response = client.call_tool(
+        "skc_show",
+        json!({
+            "skill": skill_name,
+            "section": "Main Section",
+            "max_lines": 5
+        }),
+    );
+
+    assert!(response.get("result").is_some(), "should have result");
+    let result = response.get("result").expect("should have result");
+    let content = result.get("content").expect("should have content");
+    let text = content[0]
+        .get("text")
+        .and_then(|t| t.as_str())
+        .expect("should have text");
+
+    // Should be truncated
+    assert!(
+        text.contains("... ("),
+        "should indicate truncation: {}",
+        text
+    );
+}
+
+/// Test skc_stats tool
+#[test]
+fn test_mcp_stats_tool() {
+    let temp = TempDir::new().expect("create temp dir");
+    let skill_name = "stats-skill";
+    common::create_project_skill(temp.path(), skill_name);
+
+    let mut client = McpTestClient::spawn_in_dir(temp.path());
+    client.initialize();
+
+    let response = client.call_tool(
+        "skc_stats",
+        json!({
+            "skill": skill_name
+        }),
+    );
+
+    assert!(response.get("result").is_some(), "should have result");
+    let result = response.get("result").expect("should have result");
+    let content = result.get("content").expect("should have content");
+    let content_array = content.as_array().expect("content should be array");
+    assert!(!content_array.is_empty(), "should have content items");
+
+    // Should be valid JSON
+    let text = content_array[0]
+        .get("text")
+        .and_then(|t| t.as_str())
+        .expect("should have text");
+    let _: Value = serde_json::from_str(text).expect("should parse as JSON");
+}
+
+/// Test skc_stats tool with group_by
+#[test]
+fn test_mcp_stats_tool_group_by() {
+    let temp = TempDir::new().expect("create temp dir");
+    let skill_name = "stats-group-skill";
+    common::create_project_skill(temp.path(), skill_name);
+
+    let mut client = McpTestClient::spawn_in_dir(temp.path());
+    client.initialize();
+
+    for group_by in &[
+        "files", "sections", "commands", "projects", "errors", "search",
+    ] {
+        let response = client.call_tool(
+            "skc_stats",
+            json!({
+                "skill": skill_name,
+                "group_by": group_by
+            }),
+        );
+
+        assert!(
+            response.get("result").is_some(),
+            "should have result for group_by={}",
+            group_by
+        );
+    }
+}
+
+/// Test skc_list tool
+#[test]
+fn test_mcp_list_tool() {
+    let temp = TempDir::new().expect("create temp dir");
+    common::create_project_skill(temp.path(), "list-mcp-skill");
+
+    // Create mock home
+    let mock_home = common::create_mock_home(temp.path());
+    std::fs::create_dir_all(mock_home.join(".skillc").join("skills"))
+        .expect("create global skills dir");
+
+    let mut client =
+        McpTestClient::spawn_with_env(&[("HOME", mock_home.to_str().expect("path to str"))]);
+    client.initialize();
+
+    // Run from project directory context
+    let response = client.call_tool("skc_list", json!({}));
+
+    assert!(response.get("result").is_some(), "should have result");
+    let result = response.get("result").expect("should have result");
+    let content = result.get("content").expect("should have content");
+    let content_array = content.as_array().expect("content should be array");
+    assert!(!content_array.is_empty(), "should have content items");
+
+    // Should be valid JSON with skills array
+    let text = content_array[0]
+        .get("text")
+        .and_then(|t| t.as_str())
+        .expect("should have text");
+    let parsed: Value = serde_json::from_str(text).expect("should parse as JSON");
+    assert!(parsed.get("skills").is_some(), "should have skills array");
+}
+
+/// Test skc_list tool with filters
+#[test]
+fn test_mcp_list_tool_with_filters() {
+    let temp = TempDir::new().expect("create temp dir");
+    common::create_project_skill(temp.path(), "filter-skill-1");
+    common::create_project_skill(temp.path(), "filter-skill-2");
+
+    let mock_home = common::create_mock_home(temp.path());
+    std::fs::create_dir_all(mock_home.join(".skillc").join("skills"))
+        .expect("create global skills dir");
+
+    let mut client =
+        McpTestClient::spawn_with_env(&[("HOME", mock_home.to_str().expect("path to str"))]);
+    client.initialize();
+
+    let response = client.call_tool(
+        "skc_list",
+        json!({
+            "scope": "project",
+            "status": "not-built",
+            "limit": 1,
+            "pattern": "filter-*"
+        }),
+    );
+
+    assert!(response.get("result").is_some(), "should have result");
+    let result = response.get("result").expect("should have result");
+    let content = result.get("content").expect("should have content");
+    let text = content[0]
+        .get("text")
+        .and_then(|t| t.as_str())
+        .expect("should have text");
+    let parsed: Value = serde_json::from_str(text).expect("should parse as JSON");
+
+    // Should have at most 1 skill due to limit
+    let skills = parsed
+        .get("skills")
+        .and_then(|s| s.as_array())
+        .expect("skills array");
+    assert!(skills.len() <= 1, "should respect limit");
+}

@@ -71,13 +71,17 @@ skc lint my-skill                   # Check for issues
 skc build my-skill --target cursor  # Deploy to Cursor
 
 # Reading (also available as MCP tools)
-skc outline my-skill
+skc outline my-skill                # List all headings
+skc outline my-skill --level 2      # Only # and ## headings
 skc show my-skill --section "API Reference"
+skc show my-skill --section "API" --max-lines 50  # Truncate output
+skc open my-skill SKILL.md --max-lines 100        # Read first 100 lines
 skc search my-skill "borrow checker"
 skc sources my-skill --pattern "*.md"
 
 # Analytics
 skc stats my-skill --group-by sections
+skc stats my-skill --group-by search  # Most frequent search terms
 skc sync --dry-run
 ```
 

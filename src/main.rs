@@ -103,6 +103,10 @@ enum Commands {
     Outline {
         /// Skill name or path to skill directory
         skill: String,
+
+        /// Maximum heading level to include (1-6)
+        #[arg(long)]
+        level: Option<usize>,
     },
 
     /// Show content of a specific section
@@ -117,6 +121,10 @@ enum Commands {
         /// Limit search to a specific file
         #[arg(long)]
         file: Option<String>,
+
+        /// Maximum lines to return
+        #[arg(long)]
+        max_lines: Option<usize>,
     },
 
     /// Open a file from a skill
@@ -126,6 +134,10 @@ enum Commands {
 
         /// Relative path to file within the skill
         path: String,
+
+        /// Maximum lines to return
+        #[arg(long)]
+        max_lines: Option<usize>,
     },
 
     /// Show usage analytics for a skill
@@ -478,8 +490,8 @@ fn run(cli: Cli) -> skillc::Result<()> {
             }
         }
 
-        Commands::Outline { skill } => {
-            let output = skillc::outline(&skill, OutputFormat::Text)?;
+        Commands::Outline { skill, level } => {
+            let output = skillc::outline(&skill, level, OutputFormat::Text)?;
             println!("{}", output);
         }
 
@@ -487,13 +499,24 @@ fn run(cli: Cli) -> skillc::Result<()> {
             skill,
             section,
             file,
+            max_lines,
         } => {
-            let output = skillc::show(&skill, &section, file.as_deref(), OutputFormat::Text)?;
+            let output = skillc::show(
+                &skill,
+                &section,
+                file.as_deref(),
+                max_lines,
+                OutputFormat::Text,
+            )?;
             println!("{}", output);
         }
 
-        Commands::Open { skill, path } => {
-            let output = skillc::open(&skill, &path, OutputFormat::Text)?;
+        Commands::Open {
+            skill,
+            path,
+            max_lines,
+        } => {
+            let output = skillc::open(&skill, &path, max_lines, OutputFormat::Text)?;
             print!("{}", output);
         }
 

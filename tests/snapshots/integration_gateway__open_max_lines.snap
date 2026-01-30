@@ -1,0 +1,8 @@
+---
+source: tests/integration_gateway.rs
+expression: output
+---
+# Advanced Topics
+
+## Performance
+... (2 more lines)

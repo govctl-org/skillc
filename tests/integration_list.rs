@@ -178,7 +178,7 @@ fn test_list_json_output() {
     let parsed: Result<serde_json::Value, _> = serde_json::from_str(&stdout);
     assert!(parsed.is_ok(), "output should be valid JSON: {}", stdout);
 
-    let json = parsed.unwrap();
+    let json = parsed.expect("should be valid JSON");
     assert!(json.get("skills").is_some(), "should have skills array");
 }
 

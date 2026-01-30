@@ -23,14 +23,17 @@ fn to_mcp_err(e: crate::SkillcError) -> McpError {
     McpError::internal_error(e.to_string(), None)
 }
 
-/// Parameters for skc_outline tool
+/// Parameters for skc_outline tool per [[RFC-0002:C-OUTLINE]]
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct OutlineParams {
     /// Name of the skill to outline
     pub skill: String,
+    /// Maximum heading level to include (1-6, optional)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub level: Option<usize>,
 }
 
-/// Parameters for skc_show tool
+/// Parameters for skc_show tool per [[RFC-0002:C-SHOW]]
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct ShowParams {
     /// Name of the skill
@@ -40,15 +43,21 @@ pub struct ShowParams {
     /// Limit search to specific file (optional)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub file: Option<String>,
+    /// Maximum lines to return (optional)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_lines: Option<usize>,
 }
 
-/// Parameters for skc_open tool
+/// Parameters for skc_open tool per [[RFC-0002:C-OPEN]]
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct OpenParams {
     /// Name of the skill
     pub skill: String,
     /// Path to the file within the skill
     pub path: String,
+    /// Maximum lines to return (optional)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_lines: Option<usize>,
 }
 
 /// Parameters for skc_sources tool
@@ -176,11 +185,11 @@ impl Default for SkillcServer {
 impl SkillcServer {
     /// List all sections in a skill
     #[tool(
-        description = "List all sections in a skill. Returns JSON array of {file, level, heading}.",
+        description = "List all sections in a skill. Returns JSON array of {file, level, heading}. Use 'level' param to filter by max heading level (1-6).",
         annotations(read_only_hint = true)
     )]
     async fn skc_outline(&self, params: Parameters<OutlineParams>) -> McpResult<CallToolResult> {
-        match crate::outline(&params.0.skill, OutputFormat::Json) {
+        match crate::outline(&params.0.skill, params.0.level, OutputFormat::Json) {
             Ok(json) => Ok(CallToolResult::success(vec![Content::text(json)])),
             Err(e) => Ok(CallToolResult::error(vec![Content::text(format!(
                 "error: {}",
@@ -191,7 +200,7 @@ impl SkillcServer {
 
     /// Retrieve section content from a skill
     #[tool(
-        description = "Retrieve markdown section content by heading. Returns raw text.",
+        description = "Retrieve markdown section content by heading. Returns raw text. Use 'max_lines' to limit output.",
         annotations(read_only_hint = true)
     )]
     async fn skc_show(&self, params: Parameters<ShowParams>) -> McpResult<CallToolResult> {
@@ -199,6 +208,7 @@ impl SkillcServer {
             &params.0.skill,
             &params.0.section,
             params.0.file.as_deref(),
+            params.0.max_lines,
             OutputFormat::Text,
         ) {
             Ok(content) => Ok(CallToolResult::success(vec![Content::text(content)])),
@@ -211,11 +221,16 @@ impl SkillcServer {
 
     /// Retrieve file content from a skill
     #[tool(
-        description = "Retrieve raw file content by path. Returns raw text.",
+        description = "Retrieve raw file content by path. Returns raw text. Use 'max_lines' to limit output.",
         annotations(read_only_hint = true)
     )]
     async fn skc_open(&self, params: Parameters<OpenParams>) -> McpResult<CallToolResult> {
-        match crate::open(&params.0.skill, &params.0.path, OutputFormat::Text) {
+        match crate::open(
+            &params.0.skill,
+            &params.0.path,
+            params.0.max_lines,
+            OutputFormat::Text,
+        ) {
             Ok(content) => Ok(CallToolResult::success(vec![Content::text(content)])),
             Err(e) => Ok(CallToolResult::error(vec![Content::text(format!(
                 "error: {}",
@@ -268,7 +283,7 @@ impl SkillcServer {
 
     /// Usage analytics for a skill
     #[tool(
-        description = "Usage analytics for a skill. Returns JSON with access counts, popular sections, etc.",
+        description = "Usage analytics for a skill. Returns JSON with access counts, popular sections, etc. Use group_by: summary, files, sections, commands, projects, errors, or search.",
         annotations(read_only_hint = true)
     )]
     async fn skc_stats(&self, params: Parameters<StatsParams>) -> McpResult<CallToolResult> {
@@ -278,6 +293,7 @@ impl SkillcServer {
             Some("commands") => QueryType::Commands,
             Some("projects") => QueryType::Projects,
             Some("errors") => QueryType::Errors,
+            Some("search") => QueryType::Search,
             _ => QueryType::Summary, // None or "summary" → aggregate totals
         };
         match crate::stats(

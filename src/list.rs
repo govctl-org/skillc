@@ -181,6 +181,12 @@ fn format_text(result: &ListResult, verbose: bool) -> Result<String> {
         .load_preset(comfy_table::presets::NOTHING)
         .set_content_arrangement(ContentArrangement::Dynamic);
 
+    // Ensure a minimum width for headless environments (CI, pre-commit)
+    // where terminal width detection returns 0
+    if table.width().unwrap_or(0) < 80 {
+        table.set_width(120);
+    }
+
     // Header row
     if verbose {
         table.set_header(vec!["SKILL", "SCOPE", "STATUS", "SOURCE"]);
@@ -380,5 +386,209 @@ mod tests {
             determine_status(&source_dir, &runtime_dir, true).expect("determine status");
         assert_eq!(status, SkillStatus::NotBuilt);
         assert!(!has_runtime);
+    }
+
+    #[test]
+    fn test_determine_status_normal_without_check() {
+        let temp = TempDir::new().expect("create temp dir");
+        let source_dir = temp.path().join("source");
+        let runtime_dir = temp.path().join("runtime");
+        let meta_dir = runtime_dir.join(".skillc-meta");
+
+        fs::create_dir_all(&source_dir).expect("create source dir");
+        fs::create_dir_all(&meta_dir).expect("create meta dir");
+        fs::write(source_dir.join("SKILL.md"), "# Test").expect("write source");
+        fs::write(
+            meta_dir.join("manifest.json"),
+            r#"{"source_hash": "abc123"}"#,
+        )
+        .expect("write manifest");
+
+        // Without check_obsolete, should return Normal
+        let (status, has_runtime) =
+            determine_status(&source_dir, &runtime_dir, false).expect("determine status");
+        assert_eq!(status, SkillStatus::Normal);
+        assert!(has_runtime);
+    }
+
+    #[test]
+    fn test_determine_status_obsolete_hash_mismatch() {
+        let temp = TempDir::new().expect("create temp dir");
+        let source_dir = temp.path().join("source");
+        let runtime_dir = temp.path().join("runtime");
+        let meta_dir = runtime_dir.join(".skillc-meta");
+
+        fs::create_dir_all(&source_dir).expect("create source dir");
+        fs::create_dir_all(&meta_dir).expect("create meta dir");
+        fs::write(source_dir.join("SKILL.md"), "# Test").expect("write source");
+        // Write a manifest with a wrong hash
+        fs::write(
+            meta_dir.join("manifest.json"),
+            r#"{"source_hash": "wrong_hash"}"#,
+        )
+        .expect("write manifest");
+
+        let (status, has_runtime) =
+            determine_status(&source_dir, &runtime_dir, true).expect("determine status");
+        assert_eq!(status, SkillStatus::Obsolete);
+        assert!(has_runtime);
+    }
+
+    #[test]
+    fn test_determine_status_obsolete_no_hash_in_manifest() {
+        let temp = TempDir::new().expect("create temp dir");
+        let source_dir = temp.path().join("source");
+        let runtime_dir = temp.path().join("runtime");
+        let meta_dir = runtime_dir.join(".skillc-meta");
+
+        fs::create_dir_all(&source_dir).expect("create source dir");
+        fs::create_dir_all(&meta_dir).expect("create meta dir");
+        fs::write(source_dir.join("SKILL.md"), "# Test").expect("write source");
+        // Manifest exists but has no source_hash field
+        fs::write(meta_dir.join("manifest.json"), r#"{"version": "1.0"}"#).expect("write manifest");
+
+        let (status, has_runtime) =
+            determine_status(&source_dir, &runtime_dir, true).expect("determine status");
+        assert_eq!(status, SkillStatus::Obsolete);
+        assert!(has_runtime);
+    }
+
+    #[test]
+    fn test_compute_source_hash_deterministic() {
+        let temp = TempDir::new().expect("create temp dir");
+        let source_dir = temp.path().join("source");
+
+        fs::create_dir_all(&source_dir).expect("create source dir");
+        fs::write(source_dir.join("SKILL.md"), "# Test\nContent here").expect("write file");
+        fs::write(source_dir.join("extra.md"), "More content").expect("write file");
+
+        let hash1 = compute_source_hash(&source_dir).expect("compute hash");
+        let hash2 = compute_source_hash(&source_dir).expect("compute hash again");
+
+        assert_eq!(hash1, hash2, "hash should be deterministic");
+        assert_eq!(hash1.len(), 64, "should be SHA-256 hex (64 chars)");
+    }
+
+    #[test]
+    fn test_compute_source_hash_changes_with_content() {
+        let temp = TempDir::new().expect("create temp dir");
+        let source_dir = temp.path().join("source");
+
+        fs::create_dir_all(&source_dir).expect("create source dir");
+        fs::write(source_dir.join("SKILL.md"), "# Test").expect("write file");
+
+        let hash1 = compute_source_hash(&source_dir).expect("compute hash");
+
+        // Modify content
+        fs::write(source_dir.join("SKILL.md"), "# Test Modified").expect("modify file");
+
+        let hash2 = compute_source_hash(&source_dir).expect("compute hash again");
+
+        assert_ne!(hash1, hash2, "hash should change when content changes");
+    }
+
+    #[test]
+    fn test_format_list_empty() {
+        let result = ListResult {
+            skills: vec![],
+            total: 0,
+        };
+
+        let output = format_list(&result, OutputFormat::Text, false).expect("format");
+        assert_eq!(output, "No skills found.");
+    }
+
+    #[test]
+    fn test_format_list_text() {
+        let result = ListResult {
+            skills: vec![
+                SkillInfo {
+                    name: "test-skill".to_string(),
+                    scope: SkillScope::Project,
+                    status: SkillStatus::Normal,
+                    source_path: PathBuf::from("/path/to/skill"),
+                    runtime_path: Some(PathBuf::from("/runtime/path")),
+                },
+                SkillInfo {
+                    name: "global-skill".to_string(),
+                    scope: SkillScope::Global,
+                    status: SkillStatus::NotBuilt,
+                    source_path: PathBuf::from("/global/skill"),
+                    runtime_path: None,
+                },
+            ],
+            total: 2,
+        };
+
+        let output = format_list(&result, OutputFormat::Text, false).expect("format");
+        assert!(
+            output.contains("test-skill"),
+            "should contain skill name, got: {}",
+            output
+        );
+        assert!(
+            output.contains("project"),
+            "should contain scope, got: {}",
+            output
+        );
+        assert!(
+            output.contains("normal"),
+            "should contain status, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_format_list_text_verbose() {
+        let result = ListResult {
+            skills: vec![SkillInfo {
+                name: "verbose-skill".to_string(),
+                scope: SkillScope::Project,
+                status: SkillStatus::Obsolete,
+                source_path: PathBuf::from("/path/to/source"),
+                runtime_path: Some(PathBuf::from("/path/to/runtime")),
+            }],
+            total: 1,
+        };
+
+        let output = format_list(&result, OutputFormat::Text, true).expect("format");
+        assert!(
+            output.contains("verbose-skill"),
+            "should contain skill name, got: {}",
+            output
+        );
+        assert!(
+            output.contains("obsolete"),
+            "should contain status, got: {}",
+            output
+        );
+        assert!(
+            output.contains("/path/to/source"),
+            "verbose should show source path, got: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_format_list_json() {
+        let result = ListResult {
+            skills: vec![SkillInfo {
+                name: "json-skill".to_string(),
+                scope: SkillScope::Global,
+                status: SkillStatus::Normal,
+                source_path: PathBuf::from("/path"),
+                runtime_path: None,
+            }],
+            total: 1,
+        };
+
+        let output = format_list(&result, OutputFormat::Json, false).expect("format");
+        let parsed: serde_json::Value = serde_json::from_str(&output).expect("parse JSON");
+        assert!(parsed.get("skills").is_some(), "should have skills array");
+        assert_eq!(
+            parsed["skills"][0]["name"].as_str(),
+            Some("json-skill"),
+            "should have skill name"
+        );
     }
 }

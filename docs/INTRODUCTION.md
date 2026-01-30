@@ -46,6 +46,15 @@
 | `sync`    | Merge local logs to global store               |
 | `mcp`     | Start MCP server for agent integration         |
 
+### Common Options
+
+| Command   | Option        | Description                                                       |
+| --------- | ------------- | ----------------------------------------------------------------- |
+| `outline` | `--level <n>` | Filter to headings ≤ level n (1-6)                                |
+| `show`    | `--max-lines` | Truncate output to first n lines                                  |
+| `open`    | `--max-lines` | Truncate output to first n lines                                  |
+| `stats`   | `--group-by`  | Aggregate by: sections, files, commands, projects, errors, search |
+
 ## Two Interfaces
 
 | Interface       | For                 | Example             |

@@ -1,0 +1,41 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-30-013"
+title = "Add stats search query, outline level filter, and show/open line limits"
+status = "done"
+created = "2026-01-30"
+started = "2026-01-30"
+completed = "2026-01-30"
+refs = [
+    "RFC-0002",
+    "RFC-0003",
+    "RFC-0007",
+]
+
+[content]
+description = "Add three features: stats search query breakdown, outline level filtering, and show/open max-lines option."
+
+[[content.acceptance_criteria]]
+text = "`skc stats --group-by search` returns search query breakdown"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "`skc outline --level <n>` filters headings by level"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "`skc show --max-lines <n>` limits output lines"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "`skc open --max-lines <n>` limits output lines"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "All tests pass"
+status = "done"
+category = "chore"

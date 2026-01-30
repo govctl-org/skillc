@@ -21,17 +21,24 @@ static HEADING_LEVEL_RE: Lazy<Regex> = lazy_regex!(r"^(#{1,6})\s+");
 ///
 /// Scans all .md files and extracts headings, sorted lexicographically by path.
 /// Returns formatted output as a string.
-pub fn outline(skill: &str, format: OutputFormat) -> Result<String> {
+///
+/// The `max_level` parameter filters headings to include only those with level ≤ max_level.
+pub fn outline(skill: &str, max_level: Option<usize>, format: OutputFormat) -> Result<String> {
     let start = Instant::now();
     let resolved = resolve_skill(skill)?;
     let run_id = get_run_id();
 
-    verbose!("outline: source_dir={}", resolved.source_dir.display());
+    verbose!(
+        "outline: source_dir={} max_level={:?}",
+        resolved.source_dir.display(),
+        max_level
+    );
 
     // Initialize logging (continue even if it fails)
     let log_conn = init_log_db(&resolved.runtime_dir);
 
-    let result = do_outline(&resolved, &format);
+    let args = serde_json::json!({ "level": max_level });
+    let result = do_outline(&resolved, max_level, &format);
 
     verbose!("outline: completed in {:?}", start.elapsed());
 
@@ -44,7 +51,7 @@ pub fn outline(skill: &str, format: OutputFormat) -> Result<String> {
             skill: resolved.name.clone(),
             skill_path: resolved.source_dir.to_string_lossy().to_string(),
             cwd: get_cwd(),
-            args: "{}".to_string(),
+            args: args.to_string(),
             error: result.as_ref().err().map(|e| e.to_string()),
         },
     );
@@ -52,8 +59,17 @@ pub fn outline(skill: &str, format: OutputFormat) -> Result<String> {
     result
 }
 
-fn do_outline(resolved: &ResolvedSkill, format: &OutputFormat) -> Result<String> {
-    let headings = extract_headings(&resolved.source_dir)?;
+fn do_outline(
+    resolved: &ResolvedSkill,
+    max_level: Option<usize>,
+    format: &OutputFormat,
+) -> Result<String> {
+    let mut headings = extract_headings(&resolved.source_dir)?;
+
+    // Filter by max level if specified
+    if let Some(level) = max_level {
+        headings.retain(|h| h.level <= level);
+    }
 
     match format {
         OutputFormat::Json => {
@@ -102,23 +118,31 @@ fn do_outline(resolved: &ResolvedSkill, format: &OutputFormat) -> Result<String>
 /// Execute the show command per [[RFC-0002:C-SHOW]].
 ///
 /// Locates the specified heading and returns its content.
+///
+/// The `max_lines` parameter truncates output to the first n lines if specified.
 pub fn show(
     skill: &str,
     section: &str,
     file: Option<&str>,
+    max_lines: Option<usize>,
     format: OutputFormat,
 ) -> Result<String> {
     let start = Instant::now();
     let resolved = resolve_skill(skill)?;
     let run_id = get_run_id();
 
-    verbose!("show: section=\"{}\" file={:?}", section, file);
+    verbose!(
+        "show: section=\"{}\" file={:?} max_lines={:?}",
+        section,
+        file,
+        max_lines
+    );
     verbose!("show: source_dir={}", resolved.source_dir.display());
 
     // Initialize logging
     let log_conn = init_log_db(&resolved.runtime_dir);
 
-    let result = do_show(&resolved, section, file, &format);
+    let result = do_show(&resolved, section, file, max_lines, &format);
 
     verbose!("show: completed in {:?}", start.elapsed());
 
@@ -127,10 +151,12 @@ pub fn show(
         Ok((_, matched_file)) => serde_json::json!({
             "section": section,
             "file": matched_file.to_string_lossy(),
+            "max_lines": max_lines,
         }),
         Err(_) => serde_json::json!({
             "section": section,
             "file": file,
+            "max_lines": max_lines,
         }),
     };
 
@@ -156,6 +182,7 @@ fn do_show(
     resolved: &ResolvedSkill,
     section: &str,
     file: Option<&str>,
+    max_lines: Option<usize>,
     _format: &OutputFormat,
 ) -> Result<(String, PathBuf)> {
     let section_lower = section.trim().to_lowercase();
@@ -208,30 +235,50 @@ fn do_show(
         }
     }
 
+    // Get content lines
+    let content_lines: Vec<&str> = lines[start_line - 1..end_line].to_vec();
+
+    // Apply max_lines truncation if specified
+    let output = if let Some(limit) = max_lines {
+        if content_lines.len() > limit {
+            let truncated: Vec<&str> = content_lines[..limit].to_vec();
+            let remaining = content_lines.len() - limit;
+            format!("{}\n... ({} more lines)", truncated.join("\n"), remaining)
+        } else {
+            content_lines.join("\n")
+        }
+    } else {
+        content_lines.join("\n")
+    };
+
     // Return content and the matched file path (for logging)
-    Ok((
-        lines[start_line - 1..end_line].join("\n"),
-        matched.file.clone(),
-    ))
+    Ok((output, matched.file.clone()))
 }
 
 /// Execute the open command per [[RFC-0002:C-OPEN]].
 ///
 /// Returns the contents of the specified file.
-pub fn open(skill: &str, path: &str, format: OutputFormat) -> Result<String> {
+///
+/// The `max_lines` parameter truncates output to the first n lines if specified.
+pub fn open(
+    skill: &str,
+    path: &str,
+    max_lines: Option<usize>,
+    format: OutputFormat,
+) -> Result<String> {
     let start = Instant::now();
     let resolved = resolve_skill(skill)?;
     let run_id = get_run_id();
 
-    verbose!("open: path=\"{}\"", path);
+    verbose!("open: path=\"{}\" max_lines={:?}", path, max_lines);
     verbose!("open: source_dir={}", resolved.source_dir.display());
 
     // Initialize logging
     let log_conn = init_log_db(&resolved.runtime_dir);
 
-    let args = serde_json::json!({ "path": path });
+    let args = serde_json::json!({ "path": path, "max_lines": max_lines });
 
-    let result = do_open(&resolved, path, &format);
+    let result = do_open(&resolved, path, max_lines, &format);
 
     verbose!("open: completed in {:?}", start.elapsed());
 
@@ -252,7 +299,12 @@ pub fn open(skill: &str, path: &str, format: OutputFormat) -> Result<String> {
     result
 }
 
-fn do_open(resolved: &ResolvedSkill, path: &str, _format: &OutputFormat) -> Result<String> {
+fn do_open(
+    resolved: &ResolvedSkill,
+    path: &str,
+    max_lines: Option<usize>,
+    _format: &OutputFormat,
+) -> Result<String> {
     // Validate path doesn't escape skill root
     if path.contains("..") {
         // Check if it actually escapes after canonicalization
@@ -286,8 +338,23 @@ fn do_open(resolved: &ResolvedSkill, path: &str, _format: &OutputFormat) -> Resu
         ));
     }
 
-    // Return file contents (open always returns text content)
-    Ok(fs::read_to_string(&file_path)?)
+    let content = fs::read_to_string(&file_path)?;
+
+    // Apply max_lines truncation if specified
+    if let Some(limit) = max_lines {
+        let lines: Vec<&str> = content.lines().collect();
+        if lines.len() > limit {
+            let truncated: Vec<&str> = lines[..limit].to_vec();
+            let remaining = lines.len() - limit;
+            return Ok(format!(
+                "{}\n... ({} more lines)",
+                truncated.join("\n"),
+                remaining
+            ));
+        }
+    }
+
+    Ok(content)
 }
 
 /// Execute the sources command per [[RFC-0002:C-SOURCES]].

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-01-30
+
 ### Added
 
 - RFC-0000 defines skillc vision aligned with Agent Skills ecosystem (WI-2026-01-25-001)
@@ -97,6 +99,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Document list command in README (WI-2026-01-30-011)
 - Integration tests for lint command (WI-2026-01-30-012)
 - Integration tests for list command (WI-2026-01-30-012)
+- `skc stats --group-by search` returns search query breakdown (WI-2026-01-30-013)
+- `skc outline --level <n>` filters headings by level (WI-2026-01-30-013)
+- `skc show --max-lines <n>` limits output lines (WI-2026-01-30-013)
+- `skc open --max-lines <n>` limits output lines (WI-2026-01-30-013)
 
 ### Changed
 

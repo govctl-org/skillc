@@ -1,0 +1,12 @@
+---
+source: tests/integration_gateway.rs
+expression: output
+---
+SKILL.md
+  # Test Skill
+    ## Getting Started
+    ## API Reference
+
+docs/advanced.md
+  # Advanced Topics
+    ## Performance

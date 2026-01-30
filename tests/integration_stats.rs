@@ -20,6 +20,33 @@ fn seed_logs() -> common::TestWorkspace {
     workspace
 }
 
+fn seed_logs_with_search() -> common::TestWorkspace {
+    let workspace = init_workspace();
+
+    // Use skill name, not path (run from project directory)
+    let skill = &workspace.skill_name;
+    let root = workspace.dir.path();
+
+    // Build the skill first (search requires a search index)
+    let _ = run_skc(
+        root,
+        &[
+            "build",
+            skill,
+            "--target",
+            root.to_str().expect("path is UTF-8"),
+        ],
+    );
+
+    // Generate some search queries for stats --group-by search
+    let _ = run_skc(root, &["search", skill, "getting started"]);
+    let _ = run_skc(root, &["search", skill, "api"]);
+    let _ = run_skc(root, &["search", skill, "getting started"]); // duplicate query
+    let _ = run_skc(root, &["search", skill, "performance"]);
+
+    workspace
+}
+
 #[test]
 fn test_stats_summary_text() {
     let workspace = seed_logs();
@@ -75,4 +102,18 @@ fn test_stats_queries_json() {
         &["stats", skill, "--group-by", "errors", "--format", "json"],
     );
     assert_snapshot!("errors_json", errors);
+}
+
+/// Test stats --group-by search per [[RFC-0003:C-QUERIES]]
+#[test]
+fn test_stats_search_json() {
+    let workspace = seed_logs_with_search();
+    let skill = &workspace.skill_name;
+    let root = workspace.dir.path();
+
+    let search = run_skc_json(
+        root,
+        &["stats", skill, "--group-by", "search", "--format", "json"],
+    );
+    assert_snapshot!("search_json", search);
 }

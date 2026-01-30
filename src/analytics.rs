@@ -19,6 +19,7 @@ pub enum QueryType {
     Commands,
     Projects,
     Errors,
+    Search,
 }
 
 pub struct StatsOptions {
@@ -94,6 +95,12 @@ struct ErrorEntry {
     target: String,
     command: String,
     error: String,
+    count: i64,
+}
+
+#[derive(Serialize, Deserialize)]
+struct SearchEntry {
+    query: String,
     count: i64,
 }
 
@@ -197,6 +204,18 @@ pub fn stats(skill: &str, options: StatsOptions) -> Result<String> {
                 &resolved.name,
                 &resolved.source_dir.to_string_lossy(),
                 QueryType::Errors,
+                filters_output,
+                period,
+                data,
+                &options.format,
+            )
+        }
+        QueryType::Search => {
+            let data = build_search(&rows);
+            format_response(
+                &resolved.name,
+                &resolved.source_dir.to_string_lossy(),
+                QueryType::Search,
                 filters_output,
                 period,
                 data,
@@ -489,6 +508,34 @@ fn build_errors(rows: &[LogRow]) -> Vec<ErrorEntry> {
     entries
 }
 
+fn build_search(rows: &[LogRow]) -> Vec<SearchEntry> {
+    let mut counts: HashMap<String, i64> = HashMap::new();
+
+    for row in rows.iter().filter(|r| r.command == "search") {
+        if let Some(query) = parse_search_args(&row.args) {
+            *counts.entry(query).or_insert(0) += 1;
+        }
+    }
+
+    let mut entries: Vec<SearchEntry> = counts
+        .into_iter()
+        .map(|(query, count)| SearchEntry { query, count })
+        .collect();
+
+    // Sort by count descending, then query ascending
+    entries.sort_by(|a, b| b.count.cmp(&a.count).then_with(|| a.query.cmp(&b.query)));
+
+    entries
+}
+
+fn parse_search_args(args: &str) -> Option<String> {
+    let parsed: serde_json::Value = serde_json::from_str(args).ok()?;
+    parsed
+        .get("query")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
+}
+
 fn parse_show_args(args: &str) -> Option<(String, Option<String>)> {
     let parsed: serde_json::Value = serde_json::from_str(args).ok()?;
     let section = parsed.get("section")?.as_str()?.to_string();
@@ -613,6 +660,13 @@ fn format_text<T: Serialize>(response: StatsResponse<T>) -> Result<String> {
                     "{}\t{}\t{}\t{}",
                     entry.count, entry.command, entry.target, entry.error
                 ));
+            }
+        }
+        QueryType::Search => {
+            let entries: Vec<SearchEntry> = serde_json::from_value(data_value)
+                .map_err(|e| SkillcError::Internal(format!("invalid SearchEntry: {}", e)))?;
+            for entry in entries {
+                lines.push(format!("{}\t{}", entry.count, entry.query));
             }
         }
     }

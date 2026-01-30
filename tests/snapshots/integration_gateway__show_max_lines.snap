@@ -1,0 +1,8 @@
+---
+source: tests/integration_gateway.rs
+expression: output
+---
+## Getting Started
+
+Intro text.
+... (5 more lines)
