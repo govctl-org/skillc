@@ -146,12 +146,7 @@ enum Commands {
         skill: String,
 
         /// Group by dimension
-        #[arg(
-            long,
-            value_enum,
-            default_value = "summary",
-            hide_possible_values = true
-        )]
+        #[arg(long, value_enum, default_value = "summary")]
         group_by: QueryType,
 
         /// Output format
