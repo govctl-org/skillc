@@ -5,6 +5,7 @@ mod common;
 use common::{init_workspace, run_skc};
 use insta::assert_snapshot;
 
+/// Test outline command output matches snapshot
 #[test]
 fn test_outline_snapshot() {
     let workspace = init_workspace();
@@ -25,6 +26,7 @@ fn test_outline_level_filter() {
     assert_snapshot!("outline_level_2", output);
 }
 
+/// Test show command output matches snapshot
 #[test]
 fn test_show_snapshot() {
     let workspace = init_workspace();
@@ -60,6 +62,7 @@ fn test_show_max_lines() {
     assert_snapshot!("show_max_lines", output);
 }
 
+/// Test open command output matches snapshot
 #[test]
 fn test_open_snapshot() {
     let workspace = init_workspace();

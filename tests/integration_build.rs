@@ -248,8 +248,10 @@ fn test_build_global_flag() {
     );
 
     // Output should mention ~/.skillc/runtime/ (global SSOT)
+    // Use platform-agnostic check (Windows uses backslashes)
     assert!(
-        stdout.contains(".skillc/runtime") && stdout.contains("Runtime:"),
+        (stdout.contains(".skillc/runtime") || stdout.contains(".skillc\\runtime"))
+            && stdout.contains("Runtime:"),
         "Should output to global SSOT, got: {}",
         stdout
     );

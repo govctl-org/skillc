@@ -2,7 +2,9 @@
 
 mod common;
 
-use common::{create_mock_home, run_skc_isolated};
+#[cfg(unix)]
+use common::create_mock_home;
+use common::run_skc_isolated;
 use std::fs;
 use tempfile::TempDir;
 

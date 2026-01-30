@@ -226,17 +226,37 @@ pub fn runtime_db_path(mock_home: &Path, skill_name: &str) -> PathBuf {
         .join("logs.db")
 }
 
-pub fn normalize_text(output: &str, dir: &Path) -> String {
-    let dir_str = dir.display().to_string();
-    let mut normalized = output.replace(&format!("/private{}", dir_str), "<TEMPDIR>");
+/// Normalize a string by replacing tempdir paths and timestamps with placeholders.
+fn normalize_string(s: &str, dir: &Path) -> String {
+    // Normalize Windows path separators first
+    let normalized = s.replace('\\', "/");
+    let dir_str = dir.display().to_string().replace('\\', "/");
+
+    // Also get canonicalized path (for Windows extended-length path matching)
+    let canonical_dir_str = dir
+        .canonicalize()
+        .map(|p| p.display().to_string().replace('\\', "/"))
+        .unwrap_or_else(|_| dir_str.clone());
+
+    // Handle macOS /private prefix
+    let mut normalized = normalized.replace(&format!("/private{}", dir_str), "<TEMPDIR>");
+    // Handle Windows extended-length path prefix from canonicalize()
+    // The canonical path on Windows already includes \\?\ which becomes //?/
+    if canonical_dir_str.starts_with("//?/") {
+        normalized = normalized.replace(&canonical_dir_str, "<TEMPDIR>");
+    } else {
+        normalized = normalized.replace(&format!("//?/{}", dir_str), "<TEMPDIR>");
+    }
     normalized = normalized.replace(&dir_str, "<TEMPDIR>");
 
     let ts_pattern =
         Regex::new(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})")
             .expect("valid timestamp regex");
-    normalized = ts_pattern.replace_all(&normalized, "<TS>").to_string();
+    ts_pattern.replace_all(&normalized, "<TS>").to_string()
+}
 
-    normalized.trim_end().to_string()
+pub fn normalize_text(output: &str, dir: &Path) -> String {
+    normalize_string(output, dir).trim_end().to_string()
 }
 
 #[allow(dead_code)]
@@ -251,15 +271,7 @@ pub fn normalize_json(output: &str, dir: &Path) -> String {
 fn normalize_value(value: &mut Value, dir: &Path) {
     match value {
         Value::String(s) => {
-            let dir_str = dir.display().to_string();
-            *s = s.replace(&format!("/private{}", dir_str), "<TEMPDIR>");
-            *s = s.replace(&dir_str, "<TEMPDIR>");
-            let ts_pattern =
-                Regex::new(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})")
-                    .expect("valid timestamp regex");
-            if ts_pattern.is_match(s) {
-                *s = "<TS>".to_string();
-            }
+            *s = normalize_string(s, dir);
         }
         Value::Number(n) => {
             // Round floating point scores to 2 decimal places for stability
@@ -288,5 +300,57 @@ fn normalize_value(value: &mut Value, dir: &Path) {
             }
         }
         _ => {}
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_normalize_text_unix_path() {
+        let dir = Path::new("/tmp/test123");
+        let output = "Path: /tmp/test123/.skillc/skills/test-skill";
+        let result = normalize_text(output, dir);
+        assert_eq!(result, "Path: <TEMPDIR>/.skillc/skills/test-skill");
+    }
+
+    #[test]
+    fn test_normalize_text_macos_private_prefix() {
+        let dir = Path::new("/tmp/test123");
+        let output = "Path: /private/tmp/test123/.skillc/skills/test-skill";
+        let result = normalize_text(output, dir);
+        assert_eq!(result, "Path: <TEMPDIR>/.skillc/skills/test-skill");
+    }
+
+    #[test]
+    fn test_normalize_text_windows_backslashes() {
+        // Simulate Windows output with backslashes
+        let dir = Path::new("C:\\Users\\test\\AppData\\Local\\Temp\\.tmp123");
+        let output =
+            "Path: C:\\Users\\test\\AppData\\Local\\Temp\\.tmp123\\.skillc\\skills\\test-skill";
+        let result = normalize_text(output, dir);
+        assert_eq!(result, "Path: <TEMPDIR>/.skillc/skills/test-skill");
+    }
+
+    #[test]
+    fn test_normalize_text_windows_extended_path() {
+        // Simulate Windows canonicalized output with \\?\ prefix
+        let dir = Path::new("C:\\Users\\test\\AppData\\Local\\Temp\\.tmp123");
+        let output = "Path: \\\\?\\C:\\Users\\test\\AppData\\Local\\Temp\\.tmp123\\.skillc\\skills\\test-skill";
+        let result = normalize_text(output, dir);
+        assert_eq!(result, "Path: <TEMPDIR>/.skillc/skills/test-skill");
+    }
+
+    #[test]
+    fn test_normalize_json_windows_extended_path() {
+        let dir = Path::new("C:\\Users\\test\\AppData\\Local\\Temp\\.tmp123");
+        let output = r#"{"skill_path": "\\\\?\\C:\\Users\\test\\AppData\\Local\\Temp\\.tmp123\\.skillc\\skills\\test-skill"}"#;
+        let result = normalize_json(output, dir);
+        assert!(
+            result.contains("<TEMPDIR>/.skillc/skills/test-skill"),
+            "Expected normalized path, got: {}",
+            result
+        );
     }
 }

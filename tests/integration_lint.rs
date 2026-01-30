@@ -2,8 +2,11 @@
 
 mod common;
 
+#[cfg(unix)]
 use common::{create_mock_home, create_project_skill, run_skc_isolated};
+#[cfg(unix)]
 use std::fs;
+#[cfg(unix)]
 use tempfile::TempDir;
 
 /// Test `skc lint` passes on valid skill.

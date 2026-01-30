@@ -4,9 +4,9 @@
 
 mod common;
 
-use common::{
-    create_minimal_skill, create_mock_home, fallback_db_path, run_skc_isolated, runtime_db_path,
-};
+#[cfg(unix)]
+use common::{create_minimal_skill, create_mock_home, runtime_db_path};
+use common::{fallback_db_path, run_skc_isolated};
 use std::fs;
 use std::path::Path;
 use std::time::{Duration, SystemTime};
@@ -22,6 +22,7 @@ fn create_fallback_logs(project_dir: &Path, skill_name: &str, count: usize) {
 }
 
 /// Create fallback logs with an offset to generate unique timestamps.
+#[cfg(unix)]
 fn create_fallback_logs_with_offset(
     project_dir: &Path,
     skill_name: &str,
