@@ -1,0 +1,27 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-25-001"
+title = "Write [[RFC-0000]] skillc vision document"
+status = "done"
+created = "2026-01-25"
+started = "2026-01-25"
+completed = "2026-01-25"
+refs = ["RFC-0000"]
+
+[content]
+description = "Create [[RFC-0000]] as the foundational vision document for skillc, defining its purpose within the Agent Skills ecosystem, scope, non-goals, design principles, and normative compatibility guarantees."
+
+[[content.acceptance_criteria]]
+text = "`govctl check` passes"
+status = "done"
+category = "chore"
+
+[[content.acceptance_criteria]]
+text = "RFC-0000 defines skillc vision aligned with Agent Skills ecosystem"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "RFC-0000 includes normative compatibility guarantees (format, offline, portability)"
+status = "done"
+category = "added"

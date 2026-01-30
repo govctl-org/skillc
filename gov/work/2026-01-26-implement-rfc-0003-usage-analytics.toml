@@ -1,0 +1,27 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-26-003"
+title = "Implement [[RFC-0003]] usage analytics"
+status = "done"
+created = "2026-01-26"
+started = "2026-01-26"
+completed = "2026-01-26"
+refs = ["RFC-0003"]
+
+[content]
+description = "Implement [[RFC-0003]] analytics queries, filters, and output formats."
+
+[[content.acceptance_criteria]]
+text = "Implement stats analytics queries per [[RFC-0003]]"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Support filters and JSON output schema"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "govctl check passes"
+status = "done"
+category = "chore"

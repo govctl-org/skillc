@@ -1,0 +1,43 @@
+{
+  "rfc_id": "RFC-0000",
+  "title": "skillc — A Development Kit for Skill Writers",
+  "version": "0.1.0",
+  "status": "normative",
+  "phase": "stable",
+  "owners": ["@govctl-org"],
+  "created": "2026-01-25",
+  "updated": "2026-01-30",
+  "sections": [
+    {
+      "title": "Summary",
+      "clauses": ["clauses/C-VISION.json"]
+    },
+    {
+      "title": "Motivation",
+      "clauses": ["clauses/C-PROBLEM.json"]
+    },
+    {
+      "title": "Scope",
+      "clauses": ["clauses/C-SCOPE.json", "clauses/C-NONGOALS.json"]
+    },
+    {
+      "title": "Principles",
+      "clauses": ["clauses/C-PRINCIPLES.json"]
+    },
+    {
+      "title": "Compatibility Guarantees",
+      "clauses": [
+        "clauses/C-COMPAT-FORMAT.json",
+        "clauses/C-COMPAT-OFFLINE.json",
+        "clauses/C-COMPAT-PORTABLE.json"
+      ]
+    }
+  ],
+  "changelog": [
+    {
+      "version": "0.1.0",
+      "date": "2026-01-30",
+      "notes": "Initial release"
+    }
+  ]
+}

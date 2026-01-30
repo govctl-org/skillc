@@ -1,0 +1,30 @@
+{
+  "rfc_id": "RFC-0005",
+  "title": "Error Code Registry",
+  "version": "0.1.0",
+  "status": "normative",
+  "phase": "test",
+  "owners": ["@govctl-org"],
+  "created": "2026-01-28",
+  "updated": "2026-01-30",
+  "sections": [
+    {
+      "title": "Summary"
+    },
+    {
+      "title": "Specification",
+      "clauses": ["clauses/C-CODES.json", "clauses/C-USAGE.json"]
+    },
+    {
+      "title": "Motivation",
+      "clauses": ["clauses/C-OVERVIEW.json"]
+    }
+  ],
+  "changelog": [
+    {
+      "version": "0.1.0",
+      "date": "2026-01-30",
+      "notes": "Initial release"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-28-001"
+title = "Draft [[RFC-0004]] Search Protocol"
+status = "done"
+created = "2026-01-28"
+started = "2026-01-28"
+completed = "2026-01-28"
+refs = ["RFC-0004"]
+
+[content]
+description = "Draft [[RFC-0004]] Search Protocol specification. Defines full-text search using SQLite FTS5, with BM25 ranking and snippet extraction. Phase 1 supports Markdown and plain text; additional formats planned for future versions."
+
+[[content.acceptance_criteria]]
+text = "Draft [[RFC-0004]] Search Protocol"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "govctl check passes"
+status = "done"
+category = "chore"

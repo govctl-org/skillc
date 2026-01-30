@@ -1,0 +1,33 @@
+{
+  "rfc_id": "RFC-0002",
+  "title": "Gateway Protocol",
+  "version": "0.1.0",
+  "status": "normative",
+  "phase": "test",
+  "owners": ["@govctl-org"],
+  "created": "2026-01-26",
+  "updated": "2026-01-30",
+  "sections": [
+    {
+      "title": "Summary",
+      "clauses": ["clauses/C-OVERVIEW.json"]
+    },
+    {
+      "title": "Specification",
+      "clauses": [
+        "clauses/C-OUTLINE.json",
+        "clauses/C-SHOW.json",
+        "clauses/C-OPEN.json",
+        "clauses/C-ERRORS.json",
+        "clauses/C-SOURCES.json"
+      ]
+    }
+  ],
+  "changelog": [
+    {
+      "version": "0.1.0",
+      "date": "2026-01-30",
+      "notes": "Initial release"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+---
+source: tests/integration_search.rs
+expression: output
+---
+{
+  "query": "performance",
+  "results": [
+    {
+      "file": "docs/advanced.md",
+      "score": 0.99,
+      "section": "Performance",
+      "snippet": "## [MATCH]Performance[/MATCH]\n\n[MATCH]Performance[/MATCH] tips here."
+    },
+    {
+      "file": "docs/advanced.md",
+      "score": 0.82,
+      "section": "Advanced Topics",
+      "snippet": "# Advanced Topics\n\n## [MATCH]Performance[/MATCH]\n\n[MATCH]Performance[/MATCH] tips here."
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-USAGE",
+  "title": "Usage by Feature RFCs",
+  "kind": "normative",
+  "status": "active",
+  "text": "**Feature RFC requirements:**\n\nFeature RFCs that define error behavior MUST:\n\n1. **Reference this RFC** — Use `[[RFC-0005]]` or `[[RFC-0005:C-CODES]]` when discussing error codes\n2. **Use canonical codes** — Only use error codes defined in [[RFC-0005:C-CODES]]\n3. **Document applicability** — Specify which codes apply to which commands/conditions\n4. **Not redefine messages** — Use the exact message templates from this RFC\n\n**Example usage in feature RFCs:**\n\n```markdown\n**Error handling:**\nSee [[RFC-0005:C-CODES]] for canonical error messages.\n\n| Condition | Error Code |\n|-----------|------------|\n| Skill not found | E001 |\n| Index unusable | E002 |\n```\n\n**Proposing new codes:**\n\nTo add a new error code:\n1. Submit an amendment to this RFC\n2. Include: code, message template, semantics, and reserved range justification\n3. Update the canonical table in [[RFC-0005:C-CODES]]\n\n**Deprecating codes:**\n\nDeprecated codes MUST remain in the table with a `(deprecated)` suffix in the Semantics column. They MUST NOT be removed to maintain backward compatibility.",
+  "since": "0.1.0"
+}

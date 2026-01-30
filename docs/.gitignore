@@ -1,0 +1,6 @@
+# mdbook output
+book/
+
+# Generated files
+SUMMARY.md
+CHANGELOG.md

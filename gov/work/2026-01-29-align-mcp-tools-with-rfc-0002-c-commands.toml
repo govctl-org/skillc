@@ -1,0 +1,27 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-29-022"
+title = "Align MCP tools with [[RFC-0007:C-COMMANDS]]"
+status = "done"
+created = "2026-01-29"
+started = "2026-01-29"
+completed = "2026-01-29"
+refs = ["RFC-0002"]
+
+[content]
+description = """Align MCP tools with [[RFC-0007:C-COMMANDS]]"""
+
+[[content.acceptance_criteria]]
+text = "Remove skc_sync from MCP (CLI-only per RFC)"
+status = "done"
+category = "removed"
+
+[[content.acceptance_criteria]]
+text = "Add missing optional params to MCP tools"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "All tests pass"
+status = "done"
+category = "chore"

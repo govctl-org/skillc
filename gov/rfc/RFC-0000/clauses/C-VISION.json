@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-VISION",
+  "title": "Vision",
+  "kind": "informative",
+  "status": "active",
+  "text": "**skillc** is a development kit for [Agent Skills](https://agentskills.io/) — the open format for extending AI agent capabilities with specialized knowledge and workflows.\n\nAgent Skills define *what* a skill is: a folder with a `SKILL.md` file containing metadata and instructions. skillc provides the *how*: tooling to author, validate, optimize, and instrument skills throughout their lifecycle.\n\nWhere the Agent Skills specification ends, skillc begins.",
+  "since": "0.1.0"
+}

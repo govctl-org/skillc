@@ -1,0 +1,56 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-29-023"
+title = "Restructure RFCs: extract CLI Reference from Gateway Protocol"
+status = "done"
+created = "2026-01-29"
+started = "2026-01-29"
+completed = "2026-01-29"
+
+[content]
+description = "Restructure RFCs to extract cross-cutting CLI concerns from [[RFC-0002]] (Gateway Protocol) into [[RFC-0007]] (CLI Reference). This creates a cleaner separation: [[RFC-0002]] focuses on gateway commands (outline, show, open, sources), while [[RFC-0007]] owns the command registry, skill resolution, access logging, sync, and MCP interface."
+
+[[content.acceptance_criteria]]
+text = "Create [[RFC-0007]] CLI Reference"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Move C-COMMANDS from [[RFC-0002]] to [[RFC-0007]]"
+status = "done"
+category = "changed"
+
+[[content.acceptance_criteria]]
+text = "Move C-MCP-OVERVIEW from [[RFC-0002]] to [[RFC-0007]]"
+status = "done"
+category = "changed"
+
+[[content.acceptance_criteria]]
+text = "Move C-MCP-SERVER from [[RFC-0002]] to [[RFC-0007]]"
+status = "done"
+category = "changed"
+
+[[content.acceptance_criteria]]
+text = "Move C-RESOLUTION from [[RFC-0002]] to [[RFC-0007]]"
+status = "done"
+category = "changed"
+
+[[content.acceptance_criteria]]
+text = "Move C-LOGGING from [[RFC-0002]] to [[RFC-0007]]"
+status = "done"
+category = "changed"
+
+[[content.acceptance_criteria]]
+text = "Move C-SYNC from [[RFC-0002]] to [[RFC-0007]]"
+status = "done"
+category = "changed"
+
+[[content.acceptance_criteria]]
+text = "Add C-INIT to [[RFC-0006]] for init command"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "All RFCs render correctly"
+status = "done"
+category = "chore"

@@ -1,0 +1,15 @@
+---
+source: tests/integration_search.rs
+expression: output
+---
+{
+  "query": "test",
+  "results": [
+    {
+      "file": "SKILL.md",
+      "score": 1.48,
+      "section": "Test Skill",
+      "snippet": "# [MATCH]Test[/MATCH] Skill\n\n## Getting Started\n\nIntro text.\n\n### Prerequisites\n\nYou need these things.\n\n## API Reference\n\nAPI docs here."
+    }
+  ]
+}

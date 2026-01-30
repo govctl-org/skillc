@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-SCOPE",
+  "title": "Lint Scope",
+  "kind": "normative",
+  "status": "active",
+  "text": "This clause defines what files the linter scans.\n\n## File Scanning\n\nThe linter scans all `.md` files in the skill directory, excluding:\n- Files in directories starting with `.` (e.g., `.git/`, `.skillc-meta/`, `.github/`)\n- Files whose names start with `.`\n\nThis is consistent with [[RFC-0001]] compilation behavior.\n\n## Compiled Skill Detection\n\nCompiled skill handling is defined by rule **SKL001** in [[RFC-0008:C-REGISTRY]].\n\nDetection: A skill is **compiled** if `.skillc-meta/manifest.json` exists.\n\n## SKILL.md Requirement\n\nThe linter requires `SKILL.md` to exist. If missing, the linter exits with E010 per [[RFC-0005:C-CODES]].\n\n## Frontmatter Requirement\n\nFrontmatter validation is handled by rule **SKL100** in [[RFC-0008:C-REGISTRY]]. Invalid frontmatter produces E300 (lint error), not E010.",
+  "since": "0.1.0"
+}

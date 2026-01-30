@@ -1,0 +1,32 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-29-007"
+title = "fix-unclear-error-message-and-add-e999"
+status = "done"
+created = "2026-01-29"
+started = "2026-01-29"
+completed = "2026-01-29"
+refs = ["RFC-0005"]
+
+[content]
+description = "Amend [[RFC-0005]] to include error codes in user-facing messages (e.g., `error[E001]: ...`) and add E999 for internal errors. Redesign `error.rs` with SSOT: `code()` and `message()` as single sources of truth, `Display` combines them."
+
+[[content.acceptance_criteria]]
+text = "Error messages include error codes (e.g., error[E001]: ...)"
+status = "done"
+category = "changed"
+
+[[content.acceptance_criteria]]
+text = "E999 added to [[RFC-0005]] for internal errors"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "InvalidPath error shows descriptive message"
+status = "done"
+category = "fixed"
+
+[[content.acceptance_criteria]]
+text = "All tests pass"
+status = "done"
+category = "chore"

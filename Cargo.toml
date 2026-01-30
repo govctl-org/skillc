@@ -1,0 +1,73 @@
+[package]
+name = "skillc"
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+description = "A development kit for Agent Skills - the open format for extending AI agent capabilities"
+repository = "https://github.com/govctl-org/skillc"
+keywords = ["ai", "agent", "skills", "mcp", "cli"]
+categories = ["command-line-utilities", "development-tools"]
+readme = "README.md"
+exclude = [
+    ".claude/",
+    ".github/",
+    "gov/",
+    "scripts/",
+    "deny.toml",
+    ".pre-commit-config.yaml",
+    "Justfile",
+]
+
+[[bin]]
+name = "skc"
+path = "src/main.rs"
+
+[dependencies]
+# CLI
+clap = { version = "4", features = ["derive"] }
+comfy-table = { version = "7", features = ["tty"] }
+crossterm = "0.29"
+indicatif = { version = "0.18", features = ["rayon"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+toml = "0.9"
+
+# Filesystem
+dirs = "6"
+glob = "0.3"
+walkdir = "2"
+
+# Text processing
+lazy-regex = "3"
+pulldown-cmark = "0.13"
+regex = "1"
+
+# Database
+rusqlite = { version = "0.38", features = ["bundled"] }
+
+# Concurrency
+rayon = "1"
+
+# Utilities
+chrono = { version = "0.4", features = ["serde"] }
+rand = "0.9"
+sha2 = "0.10"
+strum = { version = "0.27", features = ["derive"] }
+
+# MCP server (https://github.com/modelcontextprotocol/rust-sdk)
+rmcp = { version = "0.14", features = ["server", "transport-io"] }
+schemars = "1.2"
+tokio = { version = "1", features = ["full"] }
+
+[target.'cfg(windows)'.dependencies]
+junction = "1"
+
+[dev-dependencies]
+assert_cmd = "2"
+filetime = "0.2"
+insta = { version = "1", features = ["json"] }
+predicates = "3"
+tempfile = "3"

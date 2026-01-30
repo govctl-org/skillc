@@ -1,0 +1,41 @@
+{
+  "rfc_id": "RFC-0001",
+  "title": "Skill Compilation",
+  "version": "0.1.0",
+  "status": "normative",
+  "phase": "test",
+  "owners": ["@govctl-org"],
+  "created": "2026-01-25",
+  "updated": "2026-01-30",
+  "sections": [
+    {
+      "title": "Summary",
+      "clauses": ["clauses/C-OVERVIEW.json"]
+    },
+    {
+      "title": "Specification",
+      "clauses": [
+        "clauses/C-INPUT.json",
+        "clauses/C-OUTPUT.json",
+        "clauses/C-STUB.json",
+        "clauses/C-MANIFEST.json",
+        "clauses/C-ERRORS.json"
+      ]
+    },
+    {
+      "title": "Constraints",
+      "clauses": ["clauses/C-CONSTRAINTS.json"]
+    },
+    {
+      "title": "Compilation Output",
+      "clauses": ["clauses/C-DEPLOYMENT.json"]
+    }
+  ],
+  "changelog": [
+    {
+      "version": "0.1.0",
+      "date": "2026-01-30",
+      "notes": "Initial release"
+    }
+  ]
+}

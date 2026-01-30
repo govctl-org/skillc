@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-OVERVIEW",
+  "title": "Overview",
+  "kind": "informative",
+  "status": "active",
+  "text": "Skill compilation transforms a skill source directory into a runtime-ready artifact.\n\nThe compiler reads an [Agent Skills](https://agentskills.io/) directory, extracts metadata and structure, and produces:\n1. A **stub** — a compact `SKILL.md` that instructs agents to use gateway commands\n2. A **manifest** — metadata for build tracking and change detection\n\nCompilation enforces progressive disclosure: the stub exposes structure without content, directing agents to retrieve sections on-demand through skillc.",
+  "since": "0.1.0"
+}

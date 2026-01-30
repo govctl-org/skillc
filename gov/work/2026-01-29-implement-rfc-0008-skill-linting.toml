@@ -1,0 +1,44 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-29-027"
+title = "Implement [[RFC-0008]] skill linting"
+status = "done"
+created = "2026-01-29"
+started = "2026-01-29"
+completed = "2026-01-29"
+refs = ["RFC-0008"]
+
+[content]
+description = """
+Implement the `skc lint` command per [[RFC-0008]] Skill Authoring Standard.
+Includes all SKLxxx lint rules with comprehensive test coverage."""
+
+[[content.acceptance_criteria]]
+text = "Implement `skc lint` command per [[RFC-0008]]"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Implement SKL1xx frontmatter rules"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Implement SKL2xx structure rules"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Implement SKL3xx link rules"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Implement SKL4xx file rules"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "All tests pass"
+status = "done"
+category = "chore"

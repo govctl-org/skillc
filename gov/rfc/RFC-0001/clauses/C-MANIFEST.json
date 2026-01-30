@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-MANIFEST",
+  "title": "Manifest Format",
+  "kind": "normative",
+  "status": "active",
+  "text": "The manifest MUST be a JSON file located at `.skillc/manifest.json` in the runtime directory.\n\nThe manifest MUST include:\n- `skill` — the skill name\n- `version` — manifest schema version (integer)\n- `built_at` — ISO 8601 timestamp of compilation\n- `source_hash` — content hash for change detection\n\nThe source hash MUST be computed as SHA-256 over the sorted list of `(relative_path, file_hash)` pairs from the source directory. This enables the compiler to detect when sources have changed since the last build.\n\nThe manifest MAY include additional fields for future extensibility.",
+  "since": "0.1.0"
+}

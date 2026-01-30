@@ -1,0 +1,28 @@
+---
+source: tests/integration_stats.rs
+expression: files
+---
+{
+  "data": [
+    {
+      "count": 1,
+      "file": "SKILL.md"
+    },
+    {
+      "count": 1,
+      "file": "docs/advanced.md"
+    }
+  ],
+  "filters": {
+    "projects": [],
+    "since": null,
+    "until": null
+  },
+  "period": {
+    "end": "<TS>",
+    "start": "<TS>"
+  },
+  "query": "files",
+  "skill": "test-skill",
+  "skill_path": "<TEMPDIR>/.skillc/skills/test-skill"
+}

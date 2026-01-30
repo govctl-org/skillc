@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-FILES",
+  "title": "Configuration Files",
+  "kind": "normative",
+  "status": "active",
+  "text": "## File Locations\n\nskillc MUST check for configuration files in these locations:\n\n| Scope | Path | Purpose |\n|-------|------|---------|\n| Global | `~/.skillc/config.toml` | User-wide preferences |\n| Project | `.skillc/config.toml` | Project-specific overrides |\n\n## File Format\n\nConfiguration files MUST use TOML format.\n\nConfiguration files MAY be empty or omit any section. Missing values use defaults per [[RFC-0009:C-RESOLUTION]].\n\n## Schema\n\n```toml\n# Schema version (optional, default: 1)\nversion = 1\n\n[search]\n# Tokenizer for search indexing: \"ascii\" (default) or \"cjk\"\ntokenizer = \"ascii\"\n\n# Reserved for future use\n# [lint]\n# rules = { ... }\n```\n\n## Version Handling\n\nThe `version` field is OPTIONAL. If omitted, version 1 is assumed.\n\n**Compatibility rules:**\n- Version 1 is the only supported version in v0.1.0\n- If `version` is present and greater than the supported version, skillc MUST emit a warning and proceed using only recognized fields\n- If `version` is present and not a positive integer, skillc MUST emit an error and ignore the entire config file (proceed as if it does not exist)\n\n## Unknown Keys\n\nUnknown keys and sections MUST be ignored with a warning. This enables forward compatibility when older skillc versions read configs written for newer versions.",
+  "since": "0.1.0"
+}

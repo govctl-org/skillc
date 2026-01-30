@@ -1,0 +1,28 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-30-002"
+title = "Fix [[RFC-0001]] stub size limit and [[RFC-0004]] staleness check"
+status = "done"
+created = "2026-01-30"
+started = "2026-01-30"
+completed = "2026-01-30"
+
+[content]
+description = """
+Fix [[RFC-0001:C-CONSTRAINTS]] stub size limit and [[RFC-0004:C-INDEX]] staleness check.
+"""
+
+[[content.acceptance_criteria]]
+text = "Enforce 100-line stub size limit per [[RFC-0001:C-CONSTRAINTS]]"
+status = "done"
+category = "fixed"
+
+[[content.acceptance_criteria]]
+text = "Complete staleness check per [[RFC-0004:C-INDEX]]"
+status = "done"
+category = "fixed"
+
+[[content.acceptance_criteria]]
+text = "All tests pass"
+status = "done"
+category = "chore"

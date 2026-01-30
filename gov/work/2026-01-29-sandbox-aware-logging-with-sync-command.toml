@@ -1,0 +1,40 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-29-012"
+title = "Sandbox-aware logging with sync command"
+status = "done"
+created = "2026-01-29"
+started = "2026-01-29"
+completed = "2026-01-29"
+refs = [
+    "RFC-0002",
+    "RFC-0005",
+]
+
+[content]
+description = "Add sandbox-aware fallback logging per amended [[RFC-0007:C-LOGGING]] and implement `skc sync` command per [[RFC-0007:C-SYNC]] to merge project-local logs into global runtime."
+
+[[content.acceptance_criteria]]
+text = "Amend [[RFC-0007:C-LOGGING]] with fallback logging for sandboxed environments"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Add [[RFC-0007:C-SYNC]] clause for sync command"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Implement fallback logging to workspace when primary fails"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Implement `skc sync` command to merge local logs to global"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "All tests pass"
+status = "done"
+category = "chore"

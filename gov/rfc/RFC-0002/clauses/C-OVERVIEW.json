@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-OVERVIEW",
+  "title": "Overview",
+  "kind": "informative",
+  "status": "active",
+  "text": "The gateway is how agents access skill content on-demand. Rather than loading entire skills into context, agents use gateway commands to retrieve specific sections as needed.\n\nGateway commands operate on the **source** directory, not the compiled stub. This ensures agents always see current content without requiring a rebuild.\n\nEvery gateway access is logged per [[RFC-0007:C-LOGGING]], enabling skill authors to understand which content agents actually use.\n\n**Gateway commands:**\n- `outline` — List all sections in a skill\n- `show` — Retrieve section content\n- `open` — Retrieve file content\n- `sources` — List source files (tree-style)\n\nSee [[RFC-0007:C-COMMANDS]] for the complete command registry with parameters and interface availability.",
+  "since": "0.1.0"
+}

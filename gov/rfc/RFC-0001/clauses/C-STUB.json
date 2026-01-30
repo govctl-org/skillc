@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-STUB",
+  "title": "Stub Format",
+  "kind": "normative",
+  "status": "active",
+  "text": "The compiled stub MUST be a valid Agent Skills `SKILL.md` file.\n\nThe stub MUST include:\n- YAML frontmatter with `name` and `description` (preserved from source)\n- A notice that agents should use gateway commands, not read sources directly\n- A statement that agents SHOULD prefer MCP tools (`skc_outline`, `skc_show`, `skc_search`, etc.) if the skillc MCP server is available, for better performance and structured output\n- Gateway command examples as CLI fallback: `skc outline`, `skc show --section`, `skc open`, `skc sources`\n- A section listing (top-level headings from source, limited per [[RFC-0001:C-CONSTRAINTS]])\n\nThe stub MUST NOT include:\n- Source content beyond headings\n- Source file listings (use `skc sources` instead)\n- Implementation details or internal paths\n- References to absolute filesystem paths\n\nThe stub format is designed to fit within agent context limits while providing enough structure for agents to navigate the skill.",
+  "since": "0.1.0"
+}

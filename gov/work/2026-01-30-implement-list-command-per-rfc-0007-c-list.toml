@@ -1,0 +1,42 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-30-008"
+title = "Implement list command per [[RFC-0007:C-LIST]]"
+status = "done"
+created = "2026-01-30"
+started = "2026-01-30"
+completed = "2026-01-30"
+refs = ["RFC-0007"]
+
+[content]
+description = "Implement list command per [[RFC-0007:C-LIST]] to enumerate all skillc-managed skills"
+
+[[content.acceptance_criteria]]
+text = "CLI list command with text output"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "MCP skc_list tool with JSON output"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Skill discovery from project and global source stores"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Status detection (normal, not-built, stale)"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Filtering by scope, status, limit, pattern"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Integration tests pass"
+status = "done"
+category = "chore"

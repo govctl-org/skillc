@@ -1,0 +1,30 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-29-017"
+title = "Design multi-target build and MCP interface"
+status = "done"
+created = "2026-01-29"
+started = "2026-01-29"
+completed = "2026-01-29"
+refs = [
+    "ADR-0002",
+    "ADR-0003",
+]
+
+[content]
+description = "Design two architectural changes: (1) Multi-target build output separating skill source from deployment targets, (2) MCP interface as primary agent API to bypass sandbox restrictions."
+
+[[content.acceptance_criteria]]
+text = "ADR-0002 Multi-Target Build Output drafted and accepted"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "ADR-0003 MCP as Primary Agent Interface drafted and accepted"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "ADR-0001 amended to reflect new source/target model"
+status = "done"
+category = "chore"

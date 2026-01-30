@@ -1,0 +1,60 @@
+[govctl]
+schema = 1
+id = "ADR-0001"
+title = "Storage Layout"
+status = "accepted"
+date = "2026-01-26"
+refs = ["RFC-0001"]
+
+[content]
+context = """
+skillc needs to store skill-related files in two locations:
+
+1. **Source files** — where skill authors write and edit content
+2. **Runtime files** — where agents discover and consume compiled skills
+
+These locations must be:
+- Predictable (so skillc can find them without configuration)
+- Non-conflicting (source and runtime are separate concerns)
+- Compatible with existing Agent Skills tooling (Claude Code, Cursor, etc.)
+
+The runtime location is particularly constrained: agents look for skills in specific directories based on their host environment."""
+decision = """
+We adopt a two-tier configuration system:
+
+**Global configuration:** `~/.skillc/config.toml`
+- Default source store: `~/.skillc/src/`
+- Default runtime store: `~/.claude/skills/`
+- Registry: `~/.skillc/registry.json`
+
+**Project configuration:** `./.skillc/config.toml` (in project root)
+- Overrides global defaults when present
+- Typical runtime store: `./.claude/skills/` or `./.skills/`
+- Enables project-local skills versioned with the repository
+
+**Resolution order (highest priority first):**
+1. Project source store (`./.skillc/skills/`)
+2. Global source store (`~/.skillc/skills/`)
+
+Note: CLI flags and environment variables for overriding source/runtime directories were removed in v0.1.0 to simplify the design. Direct paths can be imported via `skc build <path>` which copies to the appropriate source store.
+
+**Registry scope:**
+- Global registry tracks globally-installed skills
+- Project skills are discovered by scanning project config, not stored in global registry
+
+This mirrors Claude Code's model of global vs project-local skills."""
+consequences = """
+**Positive:**
+- Matches mental model of global vs project-local (like Claude Code)
+- Project skills can be version-controlled with the repository
+- Flexible for different agent environments via config
+- Clear precedence rules prevent confusion
+
+**Negative:**
+- Two config files to potentially manage
+- Project detection logic needed (find `.skillc/config.toml` upward)
+- Registry now only covers global skills; project skills discovered differently
+
+**Trade-offs accepted:**
+- Complexity of layered config is justified by flexibility gained
+- Project skills not in global registry is intentional (they belong to the project)"""

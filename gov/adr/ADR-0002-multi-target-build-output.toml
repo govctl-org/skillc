@@ -1,0 +1,107 @@
+[govctl]
+schema = 1
+id = "ADR-0002"
+title = "Multi-Target Build Output"
+status = "accepted"
+date = "2026-01-29"
+refs = [
+    "ADR-0001",
+    "RFC-0001",
+]
+
+[content]
+context = """
+## Context
+
+The current build system writes compiled skills directly to `~/.claude/skills/`, which has several problems:
+
+### Problem Statement
+
+1. **Data destruction risk:** If a user has hand-crafted skills in `~/.claude/skills/rust/`, running `skc build rust` overwrites them without warning or backup.
+
+2. **Single-target limitation:** The build output is hardcoded to Claude's skill directory. Other AI coding assistants (Cursor, Kiro, OpenCode, Copilot, etc.) have their own skill directories.
+
+3. **No canonical source location:** Skills can be built from anywhere, making it hard to track what skills exist and where their sources are.
+
+### Constraints
+
+- [[ADR-0001]] defines a layered configuration system with global and project-level overrides
+- [[RFC-0001]] specifies compilation output format (SKILL.md + manifest)
+- Backward compatibility with existing users who expect `skc build` to "just work"
+
+### Options Considered
+
+1. **Keep current design** — Accept data loss risk, single-target only
+2. **Add backup before overwrite** — Reduces risk but doesn't solve multi-target
+3. **Separate source from target** — skillc manages source, deploys to targets"""
+decision = """
+## Decision
+
+We adopt a **source/target separation model**:
+
+### Source Resolution (where to find skill source)
+
+Resolution order (highest priority first):
+
+1. `./.skillc/skills/<skill>/` — Project-local source (recursive-up search)
+2. `~/.skillc/skills/<skill>/` — Global source
+
+Note: Direct paths can be provided to `skc build`, which imports them to the appropriate source store before building. Use `--force` to overwrite existing skills during import.
+
+### Target Selection (where to write compiled output)
+
+The `--target <platform>` flag selects the output directory:
+
+```bash
+skc build rust                    # --target defaults to "claude"
+skc build rust --target cursor    # Output to cursor skill dir
+skc build rust --target kiro      # Output to kiro skill dir
+```
+
+### Target Registry
+
+Target paths are configured in `~/.skillc/config.toml`:
+
+```toml
+[targets]
+claude = "~/.claude/skills"
+cursor = "~/.cursor/skills"
+# Additional targets can be added by user
+```
+
+Built-in defaults are provided for known platforms. Users can override or add custom targets.
+
+### Implementation Notes
+
+1. The `--target` flag defaults to `claude` for backward compatibility
+2. Unknown target names are errors (must be configured first)
+3. Build output structure remains unchanged per [[RFC-0001:C-OUTPUT]]"""
+consequences = """
+## Consequences
+
+### Positive
+
+- **No data destruction:** skillc never overwrites user's hand-crafted skills; it writes to its own source directory
+- **Multi-platform support:** Same skill source can be deployed to multiple AI assistants
+- **Canonical source location:** `~/.skillc/skills/` becomes the single source of truth for skillc-managed skills
+- **Extensible:** New platforms can be added via config without code changes
+
+### Negative
+
+- **Migration required:** Existing users must move skills to `~/.skillc/skills/` or use `skc build <path>` to import
+- **Additional config:** Target registry adds configuration surface area
+- **Two-step mental model:** Users must understand source vs target distinction
+
+### Trade-offs Accepted
+
+- Complexity of source resolution order is justified by flexibility gained
+- Default to `claude` target maintains backward compatibility for most users
+- Requiring explicit target configuration for new platforms is safer than guessing paths"""
+
+[[content.alternatives]]
+text = "Keep current design: Accept data loss risk and single-target limitation. Rejected because it violates user trust."
+status = "considered"
+
+[[content.alternatives]]
+text = "Backup before overwrite: Create backup of existing skills before writing. Partial solution - doesn't address multi-target need."
+status = "considered"

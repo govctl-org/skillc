@@ -1,0 +1,30 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-29-021"
+title = "Implement MCP server per [[RFC-0002]] and [[ADR-0003]]"
+status = "done"
+created = "2026-01-29"
+started = "2026-01-29"
+completed = "2026-01-29"
+refs = [
+    "RFC-0002",
+    "ADR-0003",
+]
+
+[content]
+description = "Implement MCP server per [[RFC-0007:C-MCP-SERVER]] and [[RFC-0007:C-COMMANDS]]. Provides structured agent interface without sandbox restrictions."
+
+[[content.acceptance_criteria]]
+text = "`skc mcp` command for MCP server"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "MCP tools: skc_outline, skc_show, skc_open, skc_sources, skc_search, skc_stats, skc_build, skc_sync"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "All tests pass"
+status = "done"
+category = "chore"

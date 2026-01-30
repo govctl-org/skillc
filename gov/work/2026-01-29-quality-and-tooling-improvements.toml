@@ -1,0 +1,49 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-29-008"
+title = "Quality and tooling improvements"
+status = "done"
+created = "2026-01-29"
+started = "2026-01-29"
+completed = "2026-01-29"
+
+[content]
+description = """
+Implement quality of life improvements identified during code review:
+
+1. Fix clippy collapsible if warning in tests/common/mod.rs:156
+2. Add SKC_VERBOSE/-v flag for debug output in CLI
+3. Add cargo-deny configuration for dependency security auditing
+4. Add CLI examples to --help output
+5. Create CONTRIBUTING.md documentation for new contributors
+"""
+
+[[content.acceptance_criteria]]
+text = "Clippy collapsible if warning in tests/common/mod.rs"
+status = "done"
+category = "fixed"
+
+[[content.acceptance_criteria]]
+text = "SKC_VERBOSE/-v flag for debug output"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Add cargo-deny configuration for dependency auditing"
+status = "done"
+category = "security"
+
+[[content.acceptance_criteria]]
+text = "CLI examples in --help output"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "CONTRIBUTING.md documentation"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "All tests pass and govctl check succeeds"
+status = "done"
+category = "chore"

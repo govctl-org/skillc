@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-RESOLUTION",
+  "title": "Resolution Order",
+  "kind": "normative",
+  "status": "active",
+  "text": "When resolving a configuration value, skillc MUST apply this precedence order (highest first):\n\n1. **CLI flags** — explicit per-invocation override\n2. **Environment variables** — process-level override (see below)\n3. **Project config** — `.skillc/config.toml` in current directory or ancestors\n4. **Global config** — `~/.skillc/config.toml`\n5. **Built-in defaults** — hardcoded fallback values\n\n## Project Config Discovery\n\nskillc MUST search for `.skillc/config.toml` starting from the current working directory and walking up to filesystem root. The first config file found is used.\n\nIf no project config is found, only global config and defaults apply.\n\n## Merging Behavior\n\nResolution is **per-key**, not per-file. For each setting:\n- If project config specifies a value, use it\n- Otherwise, if global config specifies a value, use it\n- Otherwise, use the built-in default\n\nSettings not specified in a config file do not override lower-precedence values.\n\n## Environment Variables (v0.1.0)\n\nOnly the following environment variables are defined in v0.1.0:\n\n| Variable | Overrides | Valid Values |\n|----------|-----------|--------------|\n| `SKILLC_TOKENIZER` | `[search].tokenizer` | `ascii`, `cjk` |\n\nIf an environment variable is set to an invalid value, skillc MUST emit a warning and ignore the variable (fall through to next precedence level).\n\nAdditional environment variables MAY be added in future versions.",
+  "since": "0.1.0"
+}

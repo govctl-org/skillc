@@ -1,0 +1,16 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-29-006"
+title = "Fix unclear error message for invalid project path in stats command"
+status = "done"
+created = "2026-01-29"
+started = "2026-01-29"
+completed = "2026-01-29"
+
+[content]
+description = """The error message for invalid project path in stats command was unclear. This work fixes the error message to be more descriptive."""
+
+[[content.acceptance_criteria]]
+text = "Error message for invalid project path should be descriptive"
+status = "done"
+category = "fixed"

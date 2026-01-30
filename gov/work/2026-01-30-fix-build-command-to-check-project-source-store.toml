@@ -1,0 +1,18 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-30-004"
+title = "Fix build command to check project source store"
+status = "done"
+created = "2026-01-30"
+started = "2026-01-30"
+completed = "2026-01-30"
+
+[content]
+description = """
+Fix build command to check project source store.
+"""
+
+[[content.acceptance_criteria]]
+text = "Build finds project-local skills"
+status = "done"
+category = "chore"

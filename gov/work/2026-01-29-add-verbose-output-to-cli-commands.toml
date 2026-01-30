@@ -1,0 +1,35 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-29-009"
+title = "Add verbose output to CLI commands"
+status = "done"
+created = "2026-01-29"
+started = "2026-01-29"
+completed = "2026-01-29"
+
+[content]
+description = """
+Add meaningful verbose output to CLI commands. The `--verbose` flag already exists but only printed a debug message. This work makes the flag actually useful by showing:
+- Skill resolution paths and which store was matched
+- Timing information for all operations
+- Build progress details (headings, files, hash)"""
+
+[[content.acceptance_criteria]]
+text = "Pass verbose flag through to library functions"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Verbose output shows resolved paths for skill resolution"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Verbose output shows timing information for operations"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "All tests pass"
+status = "done"
+category = "chore"

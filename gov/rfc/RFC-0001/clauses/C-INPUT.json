@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-INPUT",
+  "title": "Compilation Input",
+  "kind": "normative",
+  "status": "active",
+  "text": "The compiler MUST accept any directory that is a valid Agent Skill per [[RFC-0000:C-COMPAT-FORMAT]].\n\nThe compiler MUST read the following from the source directory:\n- `SKILL.md` — extract `name` and `description` from YAML frontmatter\n- All `.md` files — extract heading structure for outline generation\n- Directory structure — enumerate files for source listing\n\nThe compiler MUST fail with a clear error if:\n- `SKILL.md` is missing\n- `SKILL.md` lacks required `name` or `description` frontmatter fields",
+  "since": "0.1.0"
+}

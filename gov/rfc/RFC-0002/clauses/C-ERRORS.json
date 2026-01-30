@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-ERRORS",
+  "title": "Error Handling",
+  "kind": "normative",
+  "status": "active",
+  "text": "All gateway command errors MUST exit with status 1 and print an error message to stderr.\n\n**Error codes:**\nSee [[RFC-0005:C-CODES]] for canonical error messages. Gateway commands use:\n\n| Condition | Error Code |\n|-----------|------------|\n| Skill resolution failed | E001 or E010 |\n| Path escapes skill root | E012 |\n| Section not found | E020 |\n| File not found | E021 |\n| Directory not found | E022 |\n| Invalid CLI option | E100 |\n\n**Usage:**\n- **E001/E010**: Skill resolution failed per [[RFC-0007:C-RESOLUTION]]. See [[RFC-0005:C-CODES]] for when to use each.\n- **E012**: `skc open` path or `skc sources --dir` path would escape the skill root after canonicalization\n- **E020**: `skc show --section` finds no matching heading\n- **E021**: `skc open` target file does not exist\n- **E022**: `skc sources --dir` target directory does not exist\n- **E100**: Unknown flag, missing required value, or other CLI parsing failure",
+  "since": "0.1.0"
+}

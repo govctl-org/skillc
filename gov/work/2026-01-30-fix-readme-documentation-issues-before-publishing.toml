@@ -1,0 +1,21 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-30-011"
+title = "Fix README documentation issues before publishing"
+status = "done"
+created = "2026-01-30"
+started = "2026-01-30"
+completed = "2026-01-30"
+
+[content]
+description = """Fix documentation issues in README before publishing."""
+
+[[content.acceptance_criteria]]
+text = "Correct storage path from ~/.skillc/src/ to ~/.skillc/skills/"
+status = "done"
+category = "fixed"
+
+[[content.acceptance_criteria]]
+text = "Document list command in README"
+status = "done"
+category = "added"

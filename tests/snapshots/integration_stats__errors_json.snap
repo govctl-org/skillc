@@ -1,0 +1,26 @@
+---
+source: tests/integration_stats.rs
+expression: errors
+---
+{
+  "data": [
+    {
+      "command": "show",
+      "count": 1,
+      "error": "error[E020]: section not found: 'Missing'",
+      "target": "Missing"
+    }
+  ],
+  "filters": {
+    "projects": [],
+    "since": null,
+    "until": null
+  },
+  "period": {
+    "end": "<TS>",
+    "start": "<TS>"
+  },
+  "query": "errors",
+  "skill": "test-skill",
+  "skill_path": "<TEMPDIR>/.skillc/skills/test-skill"
+}

@@ -1,0 +1,32 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-29-014"
+title = "Implement SSOT sync behavior"
+status = "done"
+created = "2026-01-29"
+started = "2026-01-29"
+completed = "2026-01-29"
+refs = ["RFC-0002"]
+
+[content]
+description = "Implement SSOT sync behavior per [[RFC-0007:C-SYNC]] and C-LOGGING amendments: sync always deletes local logs after success, stale warning for old fallback logs, and partial failure handling."
+
+[[content.acceptance_criteria]]
+text = "Sync always deletes local logs after successful upload (remove --purge option)"
+status = "done"
+category = "changed"
+
+[[content.acceptance_criteria]]
+text = "Stale fallback warning when local logs >1 hour old"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Partial failure handling - delete what synced successfully"
+status = "done"
+category = "changed"
+
+[[content.acceptance_criteria]]
+text = "All tests pass"
+status = "done"
+category = "chore"

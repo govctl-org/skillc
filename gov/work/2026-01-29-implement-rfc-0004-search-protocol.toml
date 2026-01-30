@@ -1,0 +1,32 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-29-003"
+title = "Implement [[RFC-0004]] Search Protocol"
+status = "done"
+created = "2026-01-29"
+started = "2026-01-29"
+completed = "2026-01-29"
+refs = ["RFC-0004"]
+
+[content]
+description = "Implement the Search Protocol per [[RFC-0004]]. This includes: FTS5 index creation during build, `skc search` command with BM25 ranking and snippet extraction, .md/.txt format support, and proper error handling per [[RFC-0005:C-CODES]]."
+
+[[content.acceptance_criteria]]
+text = "Implement `skc search` command with FTS5 index"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Build search index during `skc build` per [[RFC-0004:C-INDEX]]"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Support .md and .txt file formats per [[RFC-0004:C-FORMATS]]"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "All tests pass"
+status = "done"
+category = "chore"

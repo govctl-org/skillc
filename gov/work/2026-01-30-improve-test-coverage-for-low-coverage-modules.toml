@@ -1,0 +1,33 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-30-003"
+title = "Improve test coverage for low-coverage modules"
+status = "done"
+created = "2026-01-30"
+started = "2026-01-30"
+completed = "2026-01-30"
+
+[content]
+description = """
+Improve test coverage for low-coverage modules.
+"""
+
+[[content.acceptance_criteria]]
+text = "Add tests for error.rs Display impls"
+status = "done"
+category = "chore"
+
+[[content.acceptance_criteria]]
+text = "Add tests for resolver.rs edge cases"
+status = "done"
+category = "chore"
+
+[[content.acceptance_criteria]]
+text = "Add tests for gateway.rs error paths"
+status = "done"
+category = "chore"
+
+[[content.acceptance_criteria]]
+text = "Coverage improved"
+status = "done"
+category = "chore"

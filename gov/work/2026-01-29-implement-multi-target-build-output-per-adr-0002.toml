@@ -1,0 +1,32 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-29-020"
+title = "Implement multi-target build output per ADR-0002"
+status = "done"
+created = "2026-01-29"
+started = "2026-01-29"
+completed = "2026-01-29"
+refs = ["ADR-0002"]
+
+[content]
+description = "Implement ADR-0002: Multi-Target Build Output. Separates skill source from deployment targets with `--target` flag."
+
+[[content.acceptance_criteria]]
+text = "`--target` flag for build command (default: claude)"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Source resolution uses `~/.skillc/skills/` instead of `~/.skillc/src/`"
+status = "done"
+category = "changed"
+
+[[content.acceptance_criteria]]
+text = "Target registry in config with built-in defaults"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "All tests pass"
+status = "done"
+category = "chore"

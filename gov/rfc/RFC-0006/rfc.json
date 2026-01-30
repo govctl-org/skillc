@@ -1,0 +1,27 @@
+{
+  "rfc_id": "RFC-0006",
+  "title": "Scaffolding",
+  "version": "0.1.0",
+  "status": "normative",
+  "phase": "test",
+  "owners": ["@govctl-org"],
+  "created": "2026-01-29",
+  "updated": "2026-01-30",
+  "sections": [
+    {
+      "title": "Summary",
+      "clauses": ["clauses/C-OVERVIEW.json"]
+    },
+    {
+      "title": "Specification",
+      "clauses": ["clauses/C-INIT.json"]
+    }
+  ],
+  "changelog": [
+    {
+      "version": "0.1.0",
+      "date": "2026-01-30",
+      "notes": "Initial release"
+    }
+  ]
+}

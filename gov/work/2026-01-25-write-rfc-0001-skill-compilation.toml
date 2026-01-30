@@ -1,0 +1,32 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-25-002"
+title = "Write [[RFC-0001]] Skill Compilation"
+status = "done"
+created = "2026-01-25"
+started = "2026-01-25"
+completed = "2026-01-25"
+refs = ["RFC-0001"]
+
+[content]
+description = "Define [[RFC-0001]] specifying what `skc build` MUST produce: stub format, manifest structure, and compilation behavior."
+
+[[content.acceptance_criteria]]
+text = "RFC-0001 specifies stub output format"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "RFC-0001 specifies manifest structure"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "RFC-0001 defines compilation constraints"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "`govctl check` passes"
+status = "done"
+category = "chore"

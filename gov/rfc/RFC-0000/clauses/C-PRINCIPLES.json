@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-PRINCIPLES",
+  "title": "Design Principles",
+  "kind": "informative",
+  "status": "active",
+  "text": "**1. Extend, don't reinvent**\nAgent Skills is an open standard with broad adoption. skillc adds tooling; it doesn't fork the format.\n\n**2. Observability unlocks iteration**\nYou can't improve what you can't measure. Instrumented access is the foundation for data-driven skill refinement.\n\n**3. Progressive disclosure by default**\nThe spec recommends it; skillc enforces it. Compiled stubs expose structure without dumping content.\n\n**4. Local-first, zero infrastructure**\nskillc runs on your machine. Skills are files. No accounts, no network, no vendor lock-in.\n\n**5. Minimal viable tooling**\nStart with the smallest useful toolkit. Add capabilities only when clearly needed.",
+  "since": "0.1.0"
+}

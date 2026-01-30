@@ -1,0 +1,16 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-29-004"
+title = "Add integration test for search"
+status = "done"
+created = "2026-01-29"
+started = "2026-01-29"
+completed = "2026-01-29"
+
+[content]
+description = "Add integration tests for the search command per [[RFC-0004]]."
+
+[[content.acceptance_criteria]]
+text = "Add integration test for search command"
+status = "done"
+category = "chore"

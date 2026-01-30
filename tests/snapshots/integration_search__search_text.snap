@@ -1,0 +1,14 @@
+---
+source: tests/integration_search.rs
+expression: output
+---
+docs/advanced.md#Performance (score: 1.6595)
+  ## Performance
+
+Performance tips here.
+docs/advanced.md#Advanced Topics (score: 1.4166)
+  # Advanced Topics
+
+## Performance
+
+Performance tips here.

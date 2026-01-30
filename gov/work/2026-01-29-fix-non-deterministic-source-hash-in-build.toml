@@ -1,0 +1,16 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-29-010"
+title = "Fix non-deterministic source hash in build"
+status = "done"
+created = "2026-01-29"
+started = "2026-01-29"
+completed = "2026-01-29"
+
+[content]
+description = "Exclude hidden directories from source hash computation to ensure deterministic hashes across rebuilds"
+
+[[content.acceptance_criteria]]
+text = "Source hash is deterministic across rebuilds (excludes .git/.jj directories)"
+status = "done"
+category = "fixed"

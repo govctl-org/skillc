@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-SCOPE",
+  "title": "Scope",
+  "kind": "informative",
+  "status": "active",
+  "text": "skillc complements the Agent Skills ecosystem by providing:\n\n- **Scaffolding** — Initialize properly-structured skill directories\n- **Validation** — Check skills conform to the spec (extends `skills-ref validate`)\n- **Compilation** — Generate optimized stubs that enforce size limits and progressive disclosure\n- **Instrumentation** — Trace agent access to skill content (sections read, files opened)\n- **Analytics** — Aggregate usage data to identify high-value vs. ignored content\n- **Registry** — Track skills across source and runtime locations\n\nskillc is a local CLI tool. It works with the existing Agent Skills format — no proprietary extensions, no lock-in.",
+  "since": "0.1.0"
+}

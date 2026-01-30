@@ -1,0 +1,24 @@
+---
+source: tests/integration_stats.rs
+expression: output
+---
+{
+  "data": {
+    "error_count": 1,
+    "total_accesses": 4,
+    "unique_files": 2,
+    "unique_sections": 2
+  },
+  "filters": {
+    "projects": [],
+    "since": null,
+    "until": null
+  },
+  "period": {
+    "end": "<TS>",
+    "start": "<TS>"
+  },
+  "query": "summary",
+  "skill": "test-skill",
+  "skill_path": "<TEMPDIR>/.skillc/skills/test-skill"
+}

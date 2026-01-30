@@ -1,0 +1,27 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-29-011"
+title = "Implement skc sources command per [[RFC-0002:C-SOURCES]]"
+status = "done"
+created = "2026-01-29"
+started = "2026-01-29"
+completed = "2026-01-29"
+refs = ["RFC-0002"]
+
+[content]
+description = "Implement the `skc sources` command per [[RFC-0002:C-SOURCES]] to list source files in a tree-style format with options for depth limiting, subdirectory scoping, entry limits, and glob filtering."
+
+[[content.acceptance_criteria]]
+text = "`skc sources` command with tree-style output"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "`--depth`, `--dir`, `--limit`, `--pattern` options"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Path safety rejects escape attempts (E012)"
+status = "done"
+category = "chore"

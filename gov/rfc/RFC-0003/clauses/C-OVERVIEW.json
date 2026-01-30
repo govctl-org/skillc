@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-OVERVIEW",
+  "title": "Overview",
+  "kind": "informative",
+  "status": "active",
+  "text": "Usage analytics enables skill authors to understand how agents interact with their skills.\n\nThe analytics system is designed as a **data layer** with multiple front-end consumers:\n- CLI commands for quick insights\n- JSON output for scripts and automation\n- Future: web API and dashboard\n\nAnalytics queries the access logs created by [[RFC-0007:C-LOGGING]] and aggregates usage data.\n\n**Commands:**\n- `skc stats <skill>` — Show usage summary\n- `skc stats <skill> --group-by <type>` — Run specific aggregation\n- `skc stats <skill> --format json` — Machine-readable output",
+  "since": "0.1.0"
+}

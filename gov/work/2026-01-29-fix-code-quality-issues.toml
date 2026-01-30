@@ -1,0 +1,17 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-29-013"
+title = "fix-code-quality-issues"
+status = "done"
+created = "2026-01-29"
+started = "2026-01-29"
+completed = "2026-01-29"
+
+[content]
+description = """
+Fix some code quality issues"""
+
+[[content.acceptance_criteria]]
+text = "Code quality fixes completed"
+status = "done"
+category = "chore"

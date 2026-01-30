@@ -1,0 +1,31 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-30-010"
+title = "Refactor linter to use pulldown-cmark markdown AST parser"
+status = "done"
+created = "2026-01-30"
+started = "2026-01-30"
+completed = "2026-01-30"
+
+[content]
+description = """Refactor the linter to use the pulldown-cmark markdown AST parser."""
+
+[[content.acceptance_criteria]]
+text = "Linter SKL301 no longer flags links inside code blocks"
+status = "done"
+category = "fixed"
+
+[[content.acceptance_criteria]]
+text = "Linter SKL301 no longer flags links inside inline code"
+status = "done"
+category = "fixed"
+
+[[content.acceptance_criteria]]
+text = "Replace regex link extraction with pulldown-cmark AST"
+status = "done"
+category = "changed"
+
+[[content.acceptance_criteria]]
+text = "All existing lint tests pass"
+status = "done"
+category = "chore"

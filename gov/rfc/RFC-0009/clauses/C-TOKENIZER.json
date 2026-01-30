@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-TOKENIZER",
+  "title": "Tokenizer Setting",
+  "kind": "normative",
+  "status": "active",
+  "text": "The `[search].tokenizer` setting controls how text is tokenized for the search index per [[RFC-0004:C-INDEX]].\n\n## Values\n\n| Value | Behavior | Use Case |\n|-------|----------|----------|\n| `ascii` | Split on whitespace and punctuation | English and space-delimited languages (default) |\n| `cjk` | Character-level tokenization with ASCII fallback | Chinese, Japanese, Korean content |\n\n## Default\n\nIf not specified, the tokenizer MUST default to `ascii`.\n\n## Effect on Index\n\nChanging the tokenizer setting invalidates existing search indexes. The search command MUST detect tokenizer mismatch and prompt for rebuild per [[RFC-0004:C-INDEX]].",
+  "since": "0.1.0"
+}

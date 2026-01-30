@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-OVERVIEW",
+  "title": "Overview",
+  "kind": "informative",
+  "status": "active",
+  "text": "Search enables agents to find content within skills using full-text queries.\n\nThe search system builds an index during compilation and supports BM25-ranked queries with snippet extraction. Rather than requiring agents to know exact section headings, search allows natural language queries like \"how to configure authentication\" to find relevant content.\n\n**Design principles:**\n\n1. **Progressive disclosure** — Search returns section references; agents use `show` to retrieve content\n2. **Offline-first** — Uses SQLite FTS5, no external dependencies\n3. **Extensible formats** — File format support is added incrementally\n4. **Observable** — All searches are logged for analytics\n\n**Commands:**\n- `skc search <skill> <query>` — Find matching sections",
+  "since": "0.1.0"
+}

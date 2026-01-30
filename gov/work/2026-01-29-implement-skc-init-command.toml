@@ -1,0 +1,32 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-29-024"
+title = "Implement skc init command"
+status = "done"
+created = "2026-01-29"
+started = "2026-01-29"
+completed = "2026-01-29"
+refs = ["RFC-0006"]
+
+[content]
+description = """Implement `skc init` command per [[RFC-0006:C-INIT]]"""
+
+[[content.acceptance_criteria]]
+text = "`skc init` creates `.skillc/` project structure"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "`skc init <name>` creates project-local skill"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "`skc init <name> --global` creates global skill"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Error on existing SKILL.md"
+status = "done"
+category = "chore"

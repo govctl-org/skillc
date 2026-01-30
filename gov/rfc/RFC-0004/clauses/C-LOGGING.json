@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-LOGGING",
+  "title": "Search Logging",
+  "kind": "normative",
+  "status": "active",
+  "text": "Search commands MUST be logged per [[RFC-0007:C-LOGGING]].\n\n**Command name:** `search`\n\n**Args format:**\n```json\n{\n  \"query\": \"<search-query>\",\n  \"result_count\": <number-of-results-returned>\n}\n```\n\n**Error field:**\nIf the search fails (e.g., stale index), the error message MUST be recorded in the `error` field.\n\n**Analytics extension (future):**\nThe `stats` command (per [[RFC-0003]]) SHOULD be extended to support a `searches` query type that aggregates:\n- Query strings and their frequency\n- Average result counts\n- Zero-result query patterns\n\nThis extension is NOT part of v0.1.0. Until implemented, `--query searches` is not a valid query type and will result in error E030 per [[RFC-0005:C-CODES]].",
+  "since": "0.1.0"
+}

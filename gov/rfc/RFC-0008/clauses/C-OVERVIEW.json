@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-OVERVIEW",
+  "title": "Overview",
+  "kind": "informative",
+  "status": "active",
+  "text": "This RFC defines the skill authoring standard as a set of configurable lint rules that `skc lint` applies to skill directories.\n\n**Design:**\n- Each rule has a unique identifier (SKLxxx)\n- Rules are grouped by category (frontmatter, structure, links, files)\n- Rules produce diagnostic output per [[RFC-0005]]\n- Rules will be configurable in a future version (see [[RFC-0008:C-EXTENSIONS]])\n\n**Rule categories:**\n- **SKL1xx**: Frontmatter validation rules\n- **SKL2xx**: Structure and content rules\n- **SKL3xx**: Link validation rules\n- **SKL4xx**: File organization rules\n\n**Relationship to other RFCs:**\n- [[RFC-0001]] defines compilation requirements; this RFC extends with quality validation\n- [[RFC-0005]] defines diagnostic output format; rules map to diagnostic codes",
+  "since": "0.1.0"
+}

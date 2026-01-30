@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-PROBLEM",
+  "title": "Problem Statement",
+  "kind": "informative",
+  "status": "active",
+  "text": "The Agent Skills format solves the *consumption* problem: a simple, portable way for agents to discover and load specialized knowledge. But skill *authoring* remains ad-hoc.\n\nToday, skill writers:\n\n- **Write skills blind** — No data on which sections agents actually read\n- **Guess at structure** — No tooling to validate or optimize content organization\n- **Can't iterate effectively** — No feedback loop between publishing and agent usage\n- **Manage skills manually** — No registry, no build pipeline, no version tracking\n\nThe Agent Skills spec recommends keeping `SKILL.md` under 500 lines and using progressive disclosure, but provides no tooling to enforce or automate these practices.\n\nSkill writers need a development kit.",
+  "since": "0.1.0"
+}

@@ -1,0 +1,15 @@
+[book]
+title = "skillc"
+description = "A development kit for Agent Skills"
+authors = ["govctl-org"]
+language = "en"
+src = "."
+
+[build]
+build-dir = "book"
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "ayu"
+git-repository-url = "https://github.com/govctl-org/skillc"
+edit-url-template = "https://github.com/govctl-org/skillc/edit/main/docs/{path}"

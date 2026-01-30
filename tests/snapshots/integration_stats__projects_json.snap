@@ -1,0 +1,24 @@
+---
+source: tests/integration_stats.rs
+expression: projects
+---
+{
+  "data": [
+    {
+      "count": 4,
+      "project": "<TEMPDIR>"
+    }
+  ],
+  "filters": {
+    "projects": [],
+    "since": null,
+    "until": null
+  },
+  "period": {
+    "end": "<TS>",
+    "start": "<TS>"
+  },
+  "query": "projects",
+  "skill": "test-skill",
+  "skill_path": "<TEMPDIR>/.skillc/skills/test-skill"
+}

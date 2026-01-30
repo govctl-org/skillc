@@ -1,0 +1,61 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-30-005"
+title = "Local-first compilation with symlink deployment"
+status = "done"
+created = "2026-01-30"
+started = "2026-01-30"
+completed = "2026-01-30"
+refs = ["RFC-0001"]
+
+[content]
+description = """
+Implement local-first compilation where compiled skills live in .skillc/runtime/ (SSOT)
+and agent directories contain symlinks (or junctions/copies on Windows) pointing to the SSOT.
+
+Key changes:
+- Build outputs to SSOT location (.skillc/runtime/ or ~/.skillc/runtime/)
+- Deploys to agent directories via symlink by default
+- --global flag forces global SSOT
+- --target specifies which agents to deploy to (default: claude)
+- --copy flag forces copy instead of symlink"""
+
+[[content.acceptance_criteria]]
+text = "Local source compiles to .skillc/runtime/ (SSOT) and symlinks to agent directory"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "--global flag compiles to ~/.skillc/runtime/ (global SSOT)"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "--target flag specifies which agents to deploy to (default: claude)"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "--copy flag forces copy instead of symlink/junction"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Cross-platform support: symlink (Unix), junction/copy fallback (Windows)"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "RFC-0001:C-DEPLOYMENT amended with new deployment strategy"
+status = "done"
+category = "chore"
+
+[[content.acceptance_criteria]]
+text = "RFC-0007:C-COMMANDS updated with new build parameters"
+status = "done"
+category = "chore"
+
+[[content.acceptance_criteria]]
+text = "Unit tests for deploy.rs and integration tests for build command"
+status = "done"
+category = "added"

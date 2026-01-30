@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-OVERVIEW",
+  "title": "Overview",
+  "kind": "informative",
+  "status": "active",
+  "text": "Scaffolding provides commands to initialize skillc projects and create new skills.\n\nThe `init` command creates the necessary directory structure for skillc to manage skills locally within a project, or creates new skill templates.\n\n**Design principles:**\n\n1. **Project-local first** — Skills are created within the current project by default\n2. **Minimal templates** — Generated files contain only required structure\n3. **Idempotent initialization** — Running `init` multiple times is safe",
+  "since": "0.1.0"
+}

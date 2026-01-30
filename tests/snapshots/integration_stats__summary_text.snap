@@ -1,0 +1,13 @@
+---
+source: tests/integration_stats.rs
+expression: output
+---
+Skill: test-skill
+Path: <TEMPDIR>/.skillc/skills/test-skill
+Query: Summary
+Filters: since=<none>, until=<none>, projects=<none>
+Period: start=<TS>, end=<TS>
+Total accesses: 4
+Unique sections: 2
+Unique files: 2
+Error count: 1

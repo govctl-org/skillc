@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-COMPAT-FORMAT",
+  "title": "Format Compatibility",
+  "kind": "normative",
+  "status": "active",
+  "text": "skillc MUST accept any directory that conforms to the [Agent Skills specification](https://agentskills.io/specification).\n\nskillc MUST NOT require proprietary extensions, additional metadata fields, or non-standard file structures to function.",
+  "since": "0.1.0"
+}

@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-SHOW",
+  "title": "Show Command",
+  "kind": "normative",
+  "status": "active",
+  "text": "**Syntax:** `skc show <skill> --section \"<heading>\" [--file <path>]`\n\nThe show command MUST locate the specified heading and return its content.\n\n**Heading matching:**\n- Matching MUST be case-insensitive\n- Leading/trailing whitespace MUST be trimmed\n- If `--file` is provided, search only that file; otherwise search all `.md` files\n\n**Content extraction:**\nThe command MUST return content from the matched heading to the next heading of equal or higher level (fewer `#` characters).\n\n**Multiple matches:**\nIf multiple headings match, the command MUST return the first match and write a warning to stderr in the form:\n`warning: multiple matches for \"<heading>\"; showing first`\nThe command MUST exit with status 0 in this case.\n\n**No match:**\nIf no heading matches, the command MUST exit with a non-zero status and a clear error message.",
+  "since": "0.1.0"
+}

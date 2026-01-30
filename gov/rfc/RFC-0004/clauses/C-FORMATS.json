@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-FORMATS",
+  "title": "Supported Formats",
+  "kind": "normative",
+  "status": "active",
+  "text": "The search index MUST support the following file formats:\n\n**v0.1.0:**\n- `.md` — Markdown files, segmented by headings. Each section (heading + content until next heading of equal or higher level) becomes a searchable document. The `section` field contains the heading text.\n- `.txt` — Plain text files, indexed as a single document. The `section` field MUST be an empty string (`\"\"`).\n\n**Retrieval:**\nSearch results from any indexed format can be retrieved using `skc open <skill> <path>`. The `open` command is not restricted to `.md` files (see [[RFC-0002:C-OPEN]]).\n\nAdditional formats MAY be added in future versions. The implementation MUST silently skip unsupported file types without error.\n\n**Planned (future versions):**\n- `.csv` — Each row as a searchable document\n- `.json`, `.yaml`, `.toml` — Flattened key-value pairs\n- Code files (`.py`, `.js`, `.ts`, `.rs`) — Plain text with comment weighting",
+  "since": "0.1.0"
+}

@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-COMPAT-PORTABLE",
+  "title": "Portability",
+  "kind": "normative",
+  "status": "active",
+  "text": "Skill source directories managed by skillc MUST remain valid Agent Skills per the specification.\n\nCompiled stubs MAY instruct agents to use skillc gateway commands for content access. Instrumented tracing is only available when agents access content through skillc.\n\nskillc MAY provide options to include source references or mappings in compiled output, enabling fallback access when skillc is unavailable. The mechanism for source mapping is implementation-defined.",
+  "since": "0.1.0"
+}

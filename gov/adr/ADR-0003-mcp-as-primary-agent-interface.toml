@@ -1,0 +1,116 @@
+[govctl]
+schema = 1
+id = "ADR-0003"
+title = "MCP as Primary Agent Interface"
+status = "accepted"
+date = "2026-01-29"
+refs = [
+    "RFC-0002",
+    "RFC-0003",
+    "RFC-0004",
+]
+
+[content]
+context = """
+## Context
+
+AI coding agents interact with skillc through the CLI via the Shell tool. This architecture has fundamental limitations:
+
+### Problem Statement
+
+1. **Sandbox restrictions:** Many AI IDEs (Cursor, Claude Desktop) sandbox Shell tool execution. This blocks writes to global directories like `~/.claude/skills/<skill>/.skillc-meta/logs.db`.
+
+2. **Workaround complexity:** [[RFC-0007:C-LOGGING]] specifies a fallback mechanism (write locally, then `skc sync`), but this requires manual user intervention and adds cognitive overhead.
+
+3. **Interface mismatch:** CLI is designed for humans (text parsing, exit codes). Agents benefit from structured data (JSON) and native tool integration.
+
+4. **Performance overhead:** Each CLI invocation spawns a shell process, adding latency.
+
+### Constraints
+
+- CLI must remain for human users and automation scripts
+- MCP is the standard agent integration protocol
+- Existing CLI behavior must not regress
+
+### Options Considered
+
+1. **Keep CLI-only:** Accept sandbox limitations, rely on fallback + sync
+2. **MCP for logging only:** Add MCP server just for log writes
+3. **Full MCP interface:** Expose all skillc operations as MCP tools"""
+decision = """
+## Decision
+
+We adopt **MCP as the primary agent interface**:
+
+### Architecture
+
+```
+Human users:  Terminal → skc CLI → skillc core
+AI agents:    MCP client → skillc MCP server → skillc core
+```
+
+The MCP server exposes tools that mirror CLI commands:
+
+| MCP Tool | CLI Equivalent | Description |
+|----------|----------------|-------------|
+| `skc_outline` | `skc outline <skill>` | List skill sections |
+| `skc_show` | `skc show <skill> [section]` | Display skill content |
+| `skc_open` | `skc open <skill>` | Open skill in editor |
+| `skc_search` | `skc search <query>` | Search across skills |
+| `skc_stats` | `skc stats [options]` | Usage analytics |
+| `skc_build` | `skc build <skill>` | Compile skill |
+| `skc_sync` | `skc sync` | Sync local logs |
+| `skc_sources` | `skc sources <skill>` | List source files |
+
+### Key Design Points
+
+1. **MCP server runs outside sandbox:** No filesystem restrictions
+2. **Structured I/O:** JSON input/output instead of text parsing
+3. **Same core logic:** CLI and MCP share implementation
+4. **Logging works naturally:** MCP server writes directly to global db
+
+### Deployment
+
+The MCP server is registered in the agent's MCP configuration:
+
+```json
+{
+  "mcpServers": {
+    "skillc": {
+      "command": "skc",
+      "args": ["mcp"]
+    }
+  }
+}
+```"""
+consequences = """
+## Consequences
+
+### Positive
+
+- **No sandbox issues:** MCP server has full filesystem access
+- **Native agent integration:** MCP is the designed protocol for agent tools
+- **Structured data:** JSON eliminates text parsing errors
+- **Reduced latency:** No shell spawn overhead per command
+- **Simplified logging:** No fallback + sync dance needed for agents
+
+### Negative
+
+- **Two interfaces to maintain:** CLI and MCP must stay in sync
+- **MCP server complexity:** New component to build and test
+- **Setup required:** Users must configure MCP server in their IDE
+- **CLI fallback still needed:** For humans and non-MCP environments
+
+### Trade-offs Accepted
+
+- Implementation cost of MCP server is justified by UX improvement
+- Keeping CLI + MCP means more code, but serves distinct user populations
+- [[RFC-0007:C-LOGGING]] fallback mechanism remains for CLI users in sandboxed environments"""
+
+[[content.alternatives]]
+text = "Keep CLI-only: Accept sandbox limitations. Rejected because it degrades agent UX and requires manual sync."
+status = "considered"
+
+[[content.alternatives]]
+text = "MCP for logging only: Partial solution. Rejected because other operations also benefit from MCP."
+status = "considered"

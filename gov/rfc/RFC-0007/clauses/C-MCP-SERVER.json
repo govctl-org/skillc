@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-MCP-SERVER",
+  "title": "MCP Server",
+  "kind": "normative",
+  "status": "active",
+  "text": "**Syntax:** `skc mcp`\n\nThe MCP server command MUST start a long-running process that speaks the MCP protocol over stdio.\n\n**Protocol:**\n\nThe server MUST implement the MCP stdio transport:\n- Read JSON-RPC messages from stdin\n- Write JSON-RPC messages to stdout\n- Diagnostic output (if any) MUST go to stderr\n\n**Server info:**\n\nThe server MUST respond to `initialize` with:\n- `name`: `\"skillc\"`\n- `version`: The skillc version string\n\n**Tool discovery:**\n\nThe server MUST respond to `tools/list` with the MCP-enabled tools defined in [[RFC-0007:C-COMMANDS]].\n\n**Configuration:**\n\nThe MCP server is configured in the agent's MCP settings:\n\n```json\n{\n  \"mcpServers\": {\n    \"skillc\": {\n      \"command\": \"skc\",\n      \"args\": [\"mcp\"]\n    }\n  }\n}\n```\n\n**Logging:**\n\nAll tool invocations MUST be logged per [[RFC-0007:C-LOGGING]]. Since the MCP server runs outside the sandbox, logging SHOULD write directly to the primary runtime location (no fallback needed).",
+  "since": "0.1.0"
+}

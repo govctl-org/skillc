@@ -1,0 +1,32 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-28-002"
+title = "Draft [[RFC-0005]] Error Code Registry"
+status = "done"
+created = "2026-01-28"
+started = "2026-01-28"
+completed = "2026-01-28"
+refs = ["RFC-0005"]
+
+[content]
+description = "Create [[RFC-0005]] as a global error code registry. Centralizes error code definitions (E001-E004) so feature RFCs reference shared semantics instead of redefining codes."
+
+[[content.acceptance_criteria]]
+text = "Create [[RFC-0005]] Error Code Registry"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Define canonical error code table"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Migrate [[RFC-0004]] C-ERRORS to reference [[RFC-0005]]"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "All checks pass"
+status = "done"
+category = "chore"

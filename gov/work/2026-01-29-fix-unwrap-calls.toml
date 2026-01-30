@@ -1,0 +1,16 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-29-016"
+title = "fix-unwrap-calls"
+status = "done"
+created = "2026-01-29"
+started = "2026-01-29"
+completed = "2026-01-29"
+
+[content]
+description = """Clean up unwrap calls"""
+
+[[content.acceptance_criteria]]
+text = "unwrap calls fixed"
+status = "done"
+category = "chore"

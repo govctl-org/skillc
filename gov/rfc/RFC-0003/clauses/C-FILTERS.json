@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-FILTERS",
+  "title": "Query Filters",
+  "kind": "normative",
+  "status": "active",
+  "text": "All queries MUST support the following filters:\n\n**Time range filters:**\n- `--since <datetime>` — Include only accesses on or after this timestamp\n- `--until <datetime>` — Include only accesses on or before this timestamp\n\nTimestamps MUST be parsed as RFC 3339 format (`YYYY-MM-DDTHH:MM:SSZ`) or date-only format (`YYYY-MM-DD`, interpreted as start of day UTC).\nLogged access timestamps MUST be stored in UTC.\n\nIf no time filters are provided, all available data MUST be included.\n\n**Project filter:**\n- `--project <path>` — Include only accesses where CWD matches or is a subdirectory of the given path\n\nThe path MUST be matched as a prefix after canonicalization. Canonicalization MUST resolve `.` and `..` path segments and MUST resolve symlinks to their real paths. Matching MUST use the canonicalized absolute paths for both the filter and the logged CWD. For example, `--project /Users/me/webapp` matches CWDs like `/Users/me/webapp`, `/Users/me/webapp/src`, etc.\n\nMultiple `--project` flags MAY be provided; accesses matching ANY of the paths MUST be included (OR logic).\n\n**Filter application:**\nFilters MUST be applied before aggregation. The response schema MUST include the applied filters in the `filters` field.",
+  "since": "0.1.0"
+}

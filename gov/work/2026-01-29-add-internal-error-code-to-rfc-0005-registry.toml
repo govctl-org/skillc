@@ -1,0 +1,16 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-29-002"
+title = "Add internal error code to [[RFC-0005]] registry"
+status = "done"
+created = "2026-01-29"
+started = "2026-01-29"
+completed = "2026-01-29"
+
+[content]
+description = "Add E999 error code for internal errors (IO, database, parsing failures) to the [[RFC-0005]] error registry."
+
+[[content.acceptance_criteria]]
+text = "Add E999 internal error code"
+status = "done"
+category = "chore"

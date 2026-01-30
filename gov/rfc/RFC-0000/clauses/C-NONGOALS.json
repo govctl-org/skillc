@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-NONGOALS",
+  "title": "Non-Goals",
+  "kind": "informative",
+  "status": "active",
+  "text": "skillc does not:\n\n- **Define a new skill format** — We build on Agent Skills, not compete with it\n- **Replace `skills-ref`** — We extend validation, not duplicate it\n- **Host or distribute skills** — Publishing is out of scope for v0\n- **Modify agent behavior** — Agents consume skills normally; instrumentation is transparent\n- **Require infrastructure** — No servers, no cloud, no accounts",
+  "since": "0.1.0"
+}

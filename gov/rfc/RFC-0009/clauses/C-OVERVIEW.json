@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-OVERVIEW",
+  "title": "Overview",
+  "kind": "informative",
+  "status": "active",
+  "text": "skillc supports optional configuration files at two levels:\n\n- **Global**: `~/.skillc/config.toml` — user-wide preferences\n- **Project**: `.skillc/config.toml` — project-specific overrides\n\nConfiguration is minimal by design. Most behavior is convention-based with CLI overrides for per-invocation choices. Config files are reserved for true preferences that rarely change but need project-level control.\n\n**v0.1.0 Scope:**\n- Tokenizer preference for search indexing (ASCII vs CJK)\n\n**Future Extensions (planned):**\n- Lint rule enable/disable per [[RFC-0008]]",
+  "since": "0.1.0"
+}

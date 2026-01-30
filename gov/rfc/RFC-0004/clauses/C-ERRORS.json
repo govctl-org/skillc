@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-ERRORS",
+  "title": "Error Messages",
+  "kind": "normative",
+  "status": "active",
+  "text": "All search-related errors MUST exit with status 1 and print an error message to stderr.\n\n**Error codes:**\nSee [[RFC-0005:C-CODES]] for canonical error messages. This RFC uses:\n\n| Condition | Error Code |\n|-----------|------------|\n| Skill resolution failed | E001 or E010 |\n| Index unusable | E002 |\n| Index hash collision | E003 |\n| Empty query | E004 |\n| Invalid CLI option | E100 |\n\n**Usage:**\n- **E001/E010**: Skill resolution failed per [[RFC-0007:C-RESOLUTION]]. See [[RFC-0005:C-CODES]] for when to use each.\n- **E002**: Index unusable (missing, corrupt, or stale). See [[RFC-0004:C-INDEX]] for details.\n- **E003**: Index filename exists but `skill_path` does not match (hash collision)\n- **E004**: Query is empty or contains only whitespace\n- **E100**: Unknown flag, missing required value, or other CLI parsing failure\n\n**Collision handling:**\nHash collisions are rare but possible. When detected, the user MUST manually delete the conflicting index file. The error message includes the filename pattern to delete. Automatic deletion is not performed because it could destroy another skill's valid index.\n\n**Corrupt index handling:**\nAn index is corrupt if the database cannot be opened, `index_meta` table is missing, required keys are missing, or key values cannot be parsed. See [[RFC-0004:C-INDEX]] for the full definition. During search, corruption maps to E002. During build, corrupt files are deleted and rebuilt without collision detection (since `skill_path` cannot be verified).",
+  "since": "0.1.0"
+}

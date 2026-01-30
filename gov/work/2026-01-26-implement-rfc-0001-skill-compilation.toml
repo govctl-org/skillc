@@ -1,0 +1,37 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-26-001"
+title = "Implement [[RFC-0001]] Skill Compilation"
+status = "done"
+created = "2026-01-26"
+started = "2026-01-26"
+completed = "2026-01-26"
+refs = ["RFC-0001"]
+
+[content]
+description = "Implement skill compilation per [[RFC-0001]]: compiler module that produces stubs and manifests from Agent Skills directories."
+
+[[content.acceptance_criteria]]
+text = "Compiler accepts valid Agent Skills directory"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Compiler produces stub SKILL.md per [[RFC-0001:C-STUB]]"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Compiler produces manifest.json per [[RFC-0001:C-MANIFEST]]"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "`skc build` CLI command works"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Code compiles without errors"
+status = "done"
+category = "chore"

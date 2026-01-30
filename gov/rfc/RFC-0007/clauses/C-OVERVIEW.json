@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-OVERVIEW",
+  "title": "Overview",
+  "kind": "informative",
+  "status": "active",
+  "text": "RFC-0007 is the single source of truth for skillc's command-line interface.\n\nThis RFC specifies:\n\n1. **Command Registry** — All commands, their parameters, and interface availability (CLI vs MCP)\n2. **Skill Resolution** — How skill names/paths are resolved to source directories\n3. **Access Logging** — How command invocations are logged for analytics\n4. **Sync Command** — How fallback logs are merged to primary locations\n5. **MCP Interface** — The Model Context Protocol server for agent integration\n\n**Relationship to other RFCs:**\n\n- [[RFC-0001]] — Skill Compilation (`build` command behavioral spec)\n- [[RFC-0002]] — Gateway Protocol (`outline`, `show`, `open`, `sources` behavioral specs)\n- [[RFC-0003]] — Usage Analytics (`stats` command behavioral spec)\n- [[RFC-0004]] — Search Protocol (`search` command behavioral spec)\n- [[RFC-0005]] — Error Code Registry (canonical error codes)\n- [[RFC-0006]] — Scaffolding (`init` command behavioral spec)\n\nEach feature RFC owns the behavioral specification for its commands. RFC-0007 provides the cross-cutting infrastructure that all commands share.",
+  "since": "0.1.0"
+}

@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-RESOLUTION",
+  "title": "Skill Resolution",
+  "kind": "normative",
+  "status": "active",
+  "text": "All commands that operate on skills accept a `<skill>` argument that identifies the target skill.\n\n**Source directory resolution (first match wins):**\n\n1. If `<skill>` resolves to a valid directory path containing `SKILL.md`, use it directly (CWD-relative or absolute). This means a local path takes precedence over a global skill with the same name.\n2. If project config exists (`.skillc/config.toml` relative to CWD), check project source store using `<skill>` as a name\n3. Check global source store (`~/.skillc/skills/<skill>/`) using `<skill>` as a name\n4. Resolution failed. Exit with error per [[RFC-0005:C-CODES]]:\n   - If a directory was found at any step but it lacks `SKILL.md`: emit **E010**\n   - Otherwise (no directory found at all): emit **E001**\n\n**Runtime directory resolution (for logging):**\n\nDerive `<skill-name>` from the resolved source directory's basename.\nResolve the runtime store using the same config precedence as storage layout (project config, then global config, then defaults).\nThe runtime directory is `<runtime-store>/<skill-name>/`.\nIf multiple source directories share the same basename within the same runtime store, they will share a log database; `skill_path` in the log distinguishes entries.",
+  "since": "0.1.0"
+}

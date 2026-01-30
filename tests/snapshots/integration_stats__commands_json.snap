@@ -1,0 +1,23 @@
+---
+source: tests/integration_stats.rs
+expression: commands
+---
+{
+  "data": {
+    "open": 1,
+    "outline": 1,
+    "show": 2
+  },
+  "filters": {
+    "projects": [],
+    "since": null,
+    "until": null
+  },
+  "period": {
+    "end": "<TS>",
+    "start": "<TS>"
+  },
+  "query": "commands",
+  "skill": "test-skill",
+  "skill_path": "<TEMPDIR>/.skillc/skills/test-skill"
+}

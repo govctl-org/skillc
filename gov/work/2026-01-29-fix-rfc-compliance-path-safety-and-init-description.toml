@@ -1,0 +1,25 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-29-025"
+title = "Fix RFC compliance: path safety and init description"
+status = "done"
+created = "2026-01-29"
+started = "2026-01-29"
+completed = "2026-01-29"
+refs = [
+    "RFC-0001",
+    "RFC-0006",
+]
+
+[content]
+description = """Fix RFC compliance: path safety and init description"""
+
+[[content.acceptance_criteria]]
+text = "Init creates non-empty description per [[RFC-0001]]"
+status = "done"
+category = "fixed"
+
+[[content.acceptance_criteria]]
+text = "Compiler rejects symlinks escaping skill root per [[RFC-0001]]"
+status = "done"
+category = "fixed"

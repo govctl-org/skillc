@@ -1,0 +1,35 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-29-019"
+title = "Add MCP interface specification to [[RFC-0002]]"
+status = "done"
+created = "2026-01-29"
+started = "2026-01-29"
+completed = "2026-01-29"
+refs = [
+    "RFC-0002",
+    "ADR-0003",
+]
+
+[content]
+description = "Add MCP interface specification to [[RFC-0002]] per ADR-0003. Includes server specification, tool definitions, and overview."
+
+[[content.acceptance_criteria]]
+text = "C-MCP-OVERVIEW clause for MCP interface overview"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "C-MCP-SERVER clause for server specification"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "C-MCP-TOOLS clause for tool specifications"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "C-OVERVIEW updated to mention MCP"
+status = "done"
+category = "changed"

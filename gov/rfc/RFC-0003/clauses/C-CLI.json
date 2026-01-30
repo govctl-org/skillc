@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-CLI",
+  "title": "CLI Commands",
+  "kind": "normative",
+  "status": "active",
+  "text": "**Syntax:** `skc stats <skill> [options]`\n\nThe stats command MUST query the access log for the specified skill and display usage analytics.\n\n**Options:**\n\n`--group-by <type>` — Aggregation dimension (default: `summary`)\nValid values: `summary`, `sections`, `files`, `commands`, `projects`, `errors`\n\n`--format <format>` — Output format (default: `text`)\nValid values: `text`, `json`\n\n`--since <datetime>` — Filter: include accesses on or after this time\n\n`--until <datetime>` — Filter: include accesses on or before this time\n\n`--project <path>` — Filter: include accesses from this project directory (may be repeated)\n\n**Skill resolution:**\nThe `<skill>` argument MUST be resolved using the same logic as [[RFC-0007:C-RESOLUTION]].\n\n**Log database location:**\nThe command MUST read from `.skillc-meta/logs.db` in the resolved runtime directory (per [[RFC-0007:C-LOGGING]]).\n\n**No data:**\nIf the log database does not exist or contains no matching records, the command MUST return an empty result (not an error). For `summary`, this means all counts are zero.\n\n**Text output:**\nWhen `--format text` (default), the command MUST produce human-readable output suitable for terminal display. The exact format is implementation-defined but MUST convey the same information as the JSON schema.\n\n**Exit codes:**\n- 0: Success (including empty results)\n- 1: Error. See [[RFC-0003:C-ERRORS]] for error codes (E001/E010 for skill resolution, E030/E031 for invalid query/filter, E100 for invalid options).",
+  "since": "0.1.0"
+}

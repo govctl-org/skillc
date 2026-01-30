@@ -1,0 +1,32 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-29-026"
+title = "Add warning codes to [[RFC-0005]]"
+status = "done"
+created = "2026-01-29"
+started = "2026-01-29"
+completed = "2026-01-29"
+refs = ["RFC-0005"]
+
+[content]
+description = """Make [[RFC-0005]] diagnostic code registry, not only error codes."""
+
+[[content.acceptance_criteria]]
+text = "RFC-0005 amended with warning code specification"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Warning codes W001-W003 defined for existing warnings"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Warning infrastructure in error.rs"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Existing ad-hoc warnings migrated to use codes"
+status = "done"
+category = "chore"

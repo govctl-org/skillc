@@ -1,0 +1,26 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-27-001"
+title = "Integration test framework for skillc"
+status = "done"
+created = "2026-01-27"
+started = "2026-01-27"
+completed = "2026-01-27"
+
+[content]
+description = "Add snapshot-based CLI integration tests for `skc`."
+
+[[content.acceptance_criteria]]
+text = "CLI integration test harness with snapshots"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Integration coverage for gateway and stats commands"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Integration tests pass"
+status = "done"
+category = "chore"

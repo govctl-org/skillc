@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-OUTPUT",
+  "title": "Compilation Output",
+  "kind": "normative",
+  "status": "active",
+  "text": "The compiler MUST produce the following outputs in the runtime directory:\n\n1. `SKILL.md` — the compiled stub (see [[RFC-0001:C-STUB]])\n2. `.skillc/manifest.json` — build metadata (see [[RFC-0001:C-MANIFEST]])\n\nThe compiler MUST create the runtime directory if it does not exist.\n\nThe compiler MUST NOT copy source content to the runtime directory. Only the stub, manifest, and log directories are permitted.",
+  "since": "0.1.0"
+}

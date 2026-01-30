@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-SOURCES",
+  "title": "Sources Command",
+  "kind": "normative",
+  "status": "active",
+  "text": "**Syntax:** `skc sources <skill> [options]`\n\nThe sources command MUST list all files in the skill's source directory in a tree-style format.\n\n**Options:**\n\n| Option | Description |\n|--------|-------------|\n| `--depth <n>` | Maximum tree depth to display (default: unlimited) |\n| `--dir <path>` | Scope listing to a subdirectory |\n| `--limit <n>` | Maximum entries to display (default: 100) |\n| `--pattern <glob>` | Filter files by glob pattern (e.g., `*.md`) |\n\n**Output format:**\n\nThe command MUST output a tree-style directory listing:\n- Files are listed with their relative paths\n- Directories that are not expanded MUST show a file count suffix: `dirname/ (N files)`\n- When `--limit` is exceeded, output MUST end with a truncation indicator: `... (N more)`\n\n**Ordering:**\nEntries MUST be sorted lexicographically by relative path (bytewise ASCII order), with directories listed before files at each level.\n\n**Example output:**\n\n```\n$ skc sources cuda --depth 2\ncuda/\n├── SKILL.md\n├── references/\n│   ├── compilation.md\n│   ├── cuda-driver-docs/ (156 files)\n│   ├── cuda-runtime-docs/ (89 files)\n│   ├── debugging-tools.md\n│   └── ... (8 more)\n```\n\n**Scoped listing:**\n\nWhen `--dir` is provided, the command MUST:\n- Validate that the path exists within the skill root\n- Display the subtree rooted at that directory\n- Apply `--depth` relative to the specified directory\n\n**Path safety:**\nThe command MUST reject any `--dir` path that would resolve outside the skill source directory after canonicalization. See [[RFC-0005:C-CODES]] for error E012.",
+  "since": "0.1.0"
+}

@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-OUTLINE",
+  "title": "Outline Command",
+  "kind": "normative",
+  "status": "active",
+  "text": "**Syntax:** `skc outline <skill>`\n\nThe outline command MUST scan all `.md` files in the skill's source directory and extract headings.\n\n**Output format:**\nThe command MUST output a structured list of headings with:\n- Heading level (1-6)\n- Heading text\n- File path (relative to skill root)\n\n**Ordering:**\nHeadings MUST be listed in file order, with files sorted lexicographically by relative path (bytewise ASCII order). No special-case ordering is permitted.\n\n**Example output:**\n```\nSKILL.md\n  # Skill Name\n  ## Getting Started\n  ## API Reference\n    ### Authentication\n    ### Endpoints\nreferences/advanced.md\n  # Advanced Topics\n  ## Performance\n```",
+  "since": "0.1.0"
+}

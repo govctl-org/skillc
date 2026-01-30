@@ -1,0 +1,20 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-29-018"
+title = "Amend [[RFC-0001]] stub format for MCP preference"
+status = "done"
+created = "2026-01-29"
+started = "2026-01-29"
+completed = "2026-01-29"
+refs = [
+    "RFC-0001",
+    "ADR-0003",
+]
+
+[content]
+description = "Amend [[RFC-0001:C-STUB]] to add MCP preference statement per ADR-0003. Stubs now recommend MCP tools as primary interface with CLI as fallback."
+
+[[content.acceptance_criteria]]
+text = "RFC-0001:C-STUB updated to include MCP preference statement"
+status = "done"
+category = "changed"

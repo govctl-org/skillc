@@ -1,0 +1,27 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-30-001"
+title = "Implement MCP tools for init and lint"
+status = "done"
+created = "2026-01-30"
+started = "2026-01-30"
+completed = "2026-01-30"
+refs = ["RFC-0007"]
+
+[content]
+description = "Add `skc_init` and `skc_lint` MCP tools per [[RFC-0007:C-COMMANDS]] amendment."
+
+[[content.acceptance_criteria]]
+text = "Implement `skc_init` MCP tool"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Implement `skc_lint` MCP tool"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "All tests pass"
+status = "done"
+category = "chore"

@@ -1,0 +1,61 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-30-007"
+title = "Simplify build command with import flow"
+status = "done"
+created = "2026-01-30"
+started = "2026-01-30"
+completed = "2026-01-30"
+
+[content]
+description = """Simplify the build command by removing the `--source-dir` and `--runtime-dir` CLI flags and using an import flow for direct paths."""
+
+[[content.acceptance_criteria]]
+text = "Remove --source-dir and --runtime-dir CLI flags"
+status = "done"
+category = "changed"
+
+[[content.acceptance_criteria]]
+text = "Remove SKILLC_SOURCE and SKILLC_RUNTIME env var support"
+status = "done"
+category = "changed"
+
+[[content.acceptance_criteria]]
+text = "Import flow for direct paths (copy to .skillc/skills/)"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "--force flag for overwriting during import"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Recursive-up project detection for skill lookup"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Enhanced build output showing Source/Runtime/Deploy with scope labels"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "All tests pass (145 tests)"
+status = "done"
+category = "chore"
+
+[[content.acceptance_criteria]]
+text = "RFC-0001:C-DEPLOYMENT updated with --force flag"
+status = "done"
+category = "chore"
+
+[[content.acceptance_criteria]]
+text = "RFC-0007:C-COMMANDS updated with import behavior and --force flag"
+status = "done"
+category = "chore"
+
+[[content.acceptance_criteria]]
+text = "ADR-0001 and ADR-0002 updated to remove deprecated env vars/flags"
+status = "done"
+category = "chore"

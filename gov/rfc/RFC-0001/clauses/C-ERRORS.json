@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-ERRORS",
+  "title": "Error Handling",
+  "kind": "normative",
+  "status": "active",
+  "text": "All compilation errors MUST exit with status 1 and print an error message to stderr.\n\n**Error codes:**\nSee [[RFC-0005:C-CODES]] for canonical error messages. This RFC uses:\n\n| Condition | Error Code |\n|-----------|------------|\n| Skill resolution failed | E001 or E010 |\n| Missing frontmatter field | E011 |\n| Path escapes skill root | E012 |\n| Invalid CLI option | E100 |\n\n**Usage:**\n- **E001/E010**: Skill resolution failed per [[RFC-0007:C-RESOLUTION]]. See [[RFC-0005:C-CODES]] for when to use each.\n- **E011**: SKILL.md exists but lacks required `name` or `description` frontmatter\n- **E012**: Symlink or path would escape the skill root directory\n- **E100**: Unknown flag, missing required value, or other CLI parsing failure",
+  "since": "0.1.0"
+}

@@ -1,0 +1,45 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-26-002"
+title = "Implement [[RFC-0002]] gateway commands"
+status = "done"
+created = "2026-01-26"
+started = "2026-01-26"
+completed = "2026-01-26"
+refs = ["RFC-0002"]
+
+[content]
+description = """
+Implement the gateway protocol per [[RFC-0002]]. This enables agents to access \
+skill content on-demand via `skc outline`, `skc show`, and `skc open` commands, \
+with access logging to SQLite for usage analytics."""
+
+[[content.acceptance_criteria]]
+text = "Implement `skc outline` command per [[RFC-0002:C-OUTLINE]]"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Implement `skc show` command per [[RFC-0002:C-SHOW]]"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Implement `skc open` command per [[RFC-0002:C-OPEN]]"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Implement access logging per [[RFC-0007:C-LOGGING]]"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Implement skill resolution per [[RFC-0007:C-RESOLUTION]]"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "All tests pass"
+status = "done"
+category = "chore"

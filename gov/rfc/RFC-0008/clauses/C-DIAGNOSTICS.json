@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-DIAGNOSTICS",
+  "title": "Diagnostic Output",
+  "kind": "normative",
+  "status": "active",
+  "text": "This clause defines how lint rules produce diagnostic output.\n\n## Output Format\n\nAll lint diagnostics use the format defined in [[RFC-0005:C-CODES]]:\n\n```\n<severity>[<code>]: <rule-id> <rule-name>: <message>\n```\n\n**Components:**\n- `<severity>`: `error` or `warning`\n- `<code>`: `E300` for errors, `W300` for warnings\n- `<rule-id>`: The rule identifier (e.g., `SKL102`)\n- `<rule-name>`: The rule name (e.g., `name-format`)\n- `<message>`: Human-readable description of the violation\n\n**Examples:**\n```\nerror[E300]: SKL102 name-format: name 'My-Skill' contains uppercase characters\nerror[E300]: SKL301 link-file-exists: link target not found: 'references/missing.md'\nwarning[W300]: SKL104 name-match-dir: name 'foo' does not match directory 'bar'\nwarning[W300]: SKL401 no-orphans: orphaned file: 'old-notes.md'\n```\n\n## Rule Severity Mapping\n\nEach rule has a default severity (error or warning) defined in [[RFC-0008:C-REGISTRY]].\n\n| Default Severity | Diagnostic Code |\n|-----------------|-----------------|\n| error | E300 |\n| warning | W300 |\n\n## Exit Behavior\n\n- If any rule with error severity is violated: exit with status 1\n- If only warning-severity rules are violated: exit with status 0\n- If no violations: exit with status 0\n\n## Machine-Readable Output\n\nFuture versions MAY support structured output formats (JSON, SARIF) for tooling integration. See [[RFC-0008:C-EXTENSIONS]].",
+  "since": "0.1.0"
+}

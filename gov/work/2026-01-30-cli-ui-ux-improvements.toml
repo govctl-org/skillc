@@ -1,0 +1,37 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-30-009"
+title = "CLI UI/UX improvements"
+status = "done"
+created = "2026-01-30"
+started = "2026-01-30"
+completed = "2026-01-30"
+refs = ["RFC-0007"]
+
+[content]
+description = """Improve the CLI UI/UX for skillc."""
+
+[[content.acceptance_criteria]]
+text = "Remove RFC references from CLI help text"
+status = "done"
+category = "changed"
+
+[[content.acceptance_criteria]]
+text = "Short flags for common options (-g, -f, -o, -t, -l, -p)"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Status filter documentation (stale -> obsolete)"
+status = "done"
+category = "fixed"
+
+[[content.acceptance_criteria]]
+text = "Colored output using comfy-table"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "All tests pass"
+status = "done"
+category = "chore"

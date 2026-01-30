@@ -1,0 +1,34 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-30-006"
+title = "Configuration file support with tokenizer preference"
+status = "done"
+created = "2026-01-30"
+started = "2026-01-30"
+completed = "2026-01-30"
+refs = ["RFC-0009"]
+
+[content]
+description = """
+Add configuration file support with tokenizer preference per [[RFC-0009:C-FILES]] and [[RFC-0009:C-TOKENIZER]].
+"""
+
+[[content.acceptance_criteria]]
+text = "Config file parsing for global and project configs"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Tokenizer preference setting (ascii/cjk)"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "RFC-0009 created and finalized"
+status = "done"
+category = "chore"
+
+[[content.acceptance_criteria]]
+text = "All tests pass"
+status = "done"
+category = "chore"

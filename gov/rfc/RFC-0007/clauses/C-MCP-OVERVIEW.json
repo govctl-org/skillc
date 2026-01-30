@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-MCP-OVERVIEW",
+  "title": "MCP Interface Overview",
+  "kind": "informative",
+  "status": "active",
+  "text": "The MCP (Model Context Protocol) interface provides structured access to skillc functionality for AI agents. Per [[ADR-0003]], MCP is the recommended interface for agents because:\n\n1. **No sandbox restrictions:** MCP servers run outside the IDE sandbox, enabling writes to global directories\n2. **Structured I/O:** JSON input/output eliminates text parsing errors\n3. **Native integration:** MCP is the designed protocol for agent tools\n4. **Reduced latency:** No shell process spawn per command\n\nThe MCP interface mirrors CLI functionality. Each CLI command has a corresponding MCP tool with equivalent behavior but structured data exchange.\n\n**Architecture:**\n\n```\nHuman users:  Terminal → skc CLI → skillc core\nAI agents:    MCP client → skillc MCP server → skillc core\n```",
+  "since": "0.1.0"
+}

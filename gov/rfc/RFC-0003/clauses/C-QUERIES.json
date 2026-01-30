@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-QUERIES",
+  "title": "Query Types",
+  "kind": "normative",
+  "status": "active",
+  "text": "The analytics system MUST support the following query types:\n\n**`summary`** — Overview statistics\nReturns total access count, unique sections accessed, unique files accessed, error count, and date range of data.\n\n**`sections`** — Section access breakdown\nReturns a list of sections ordered by access count (descending). Ties MUST be ordered by file path, then section heading, both ascending. Each entry includes the section heading text, file path, and access count.\n\n**`files`** — File access breakdown\nReturns a list of files ordered by access count (descending). Ties MUST be ordered by file path ascending. Each entry includes the file path and access count.\n\n**`commands`** — Command type breakdown\nReturns access counts grouped by command type. All logged commands appear as keys. Known command types include: `outline`, `show`, `open`, `search`, `build`, `stats`. Additional command types (from future versions) MUST be included as extra keys.\n\n**`projects`** — Project/CWD breakdown\nReturns access counts grouped by calling directory (CWD). Each entry includes the directory path and access count.\n\n**`errors`** — Failed lookups\nReturns a list of failed access attempts. Each entry includes the requested target, command type, error message, and count.\n\nThe default query type MUST be `summary`.",
+  "since": "0.1.0"
+}

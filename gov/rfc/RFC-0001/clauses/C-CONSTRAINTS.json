@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-CONSTRAINTS",
+  "title": "Compilation Constraints",
+  "kind": "normative",
+  "status": "active",
+  "text": "The compiler MUST enforce the following constraints:\n\n**Stub size:**\nThe compiled stub MUST NOT exceed 100 lines. If the source skill is too large to summarize within this limit, the compiler MUST truncate sections and indicate truncation.\n\n**Section limit:**\nThe stub section listing MUST include at most 12 top-level headings. Additional headings MUST be omitted with an indication that more exist.\n\n**Command restrictions:**\n- `skc outline` — Lists structure from `.md` files only\n- `skc show` — Retrieves sections from `.md` files only\n- `skc open` — Retrieves any file within the skill root (not restricted to `.md`)\n- `skc sources` — Lists all files within the skill root\n\n**Path safety:**\nThe compiler MUST reject source directories containing symlinks that escape the skill root.",
+  "since": "0.1.0"
+}

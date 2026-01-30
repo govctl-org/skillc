@@ -1,0 +1,25 @@
+---
+source: tests/integration_stats.rs
+expression: sections
+---
+{
+  "data": [
+    {
+      "count": 1,
+      "file": "SKILL.md",
+      "section": "Getting Started"
+    }
+  ],
+  "filters": {
+    "projects": [],
+    "since": null,
+    "until": null
+  },
+  "period": {
+    "end": "<TS>",
+    "start": "<TS>"
+  },
+  "query": "sections",
+  "skill": "test-skill",
+  "skill_path": "<TEMPDIR>/.skillc/skills/test-skill"
+}

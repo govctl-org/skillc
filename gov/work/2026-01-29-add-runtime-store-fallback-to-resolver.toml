@@ -1,0 +1,20 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-29-005"
+title = "add-runtime-store-fallback-to-resolver"
+status = "done"
+created = "2026-01-29"
+started = "2026-01-29"
+completed = "2026-01-29"
+
+[content]
+description = """
+The skill resolver only checked source stores, causing compiled stub commands
+like `skc outline rust` to fail when skills live directly in ~/.claude/skills/.
+
+Fix: Add ~/.claude/skills/<name>/ as a fallback in the resolution chain."""
+
+[[content.acceptance_criteria]]
+text = "Resolver checks runtime store as fallback"
+status = "done"
+category = "fixed"

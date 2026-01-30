@@ -1,0 +1,34 @@
+{
+  "rfc_id": "RFC-0004",
+  "title": "Search Protocol",
+  "version": "0.1.0",
+  "status": "normative",
+  "phase": "test",
+  "owners": ["@govctl-org"],
+  "created": "2026-01-28",
+  "updated": "2026-01-30",
+  "sections": [
+    {
+      "title": "Summary",
+      "clauses": ["clauses/C-OVERVIEW.json"]
+    },
+    {
+      "title": "Specification",
+      "clauses": [
+        "clauses/C-FORMATS.json",
+        "clauses/C-INDEX.json",
+        "clauses/C-SEARCH.json",
+        "clauses/C-LOGGING.json",
+        "clauses/C-QUERY-SYNTAX.json",
+        "clauses/C-ERRORS.json"
+      ]
+    }
+  ],
+  "changelog": [
+    {
+      "version": "0.1.0",
+      "date": "2026-01-30",
+      "notes": "Initial release"
+    }
+  ]
+}

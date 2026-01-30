@@ -1,0 +1,21 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-30-012"
+title = "Add integration tests for lint and list commands"
+status = "done"
+created = "2026-01-30"
+started = "2026-01-30"
+completed = "2026-01-30"
+
+[content]
+description = """Add integration tests for the lint and list commands."""
+
+[[content.acceptance_criteria]]
+text = "Integration tests for lint command"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Integration tests for list command"
+status = "done"
+category = "added"

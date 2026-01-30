@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-OVERVIEW",
+  "title": "Overview",
+  "kind": "normative",
+  "status": "active",
+  "text": "This RFC defines the **canonical diagnostic code registry** for `skillc`. All error and warning codes used across the CLI are defined here.\n\n**Purpose:**\n- Single source of truth for diagnostic semantics\n- Consistent messages across commands\n- Feature RFCs reference this registry instead of defining their own codes\n\n**Scope:**\nThis RFC defines diagnostic codes and message templates. Per-command handling (which codes apply, when they're raised) remains in feature RFCs.\n\n**Diagnostic levels:**\n- **Errors** (`error[EXXX]`): Fatal conditions that prevent command completion. Exit code 1.\n- **Warnings** (`warning[WXXX]`): Non-fatal conditions where command succeeds but with degraded behavior. Exit code 0.\n\n**Design principles:**\n- Exit code 1 for errors, 0 for warnings\n- All diagnostics printed to stderr\n- Human-readable messages with codes for documentation/search",
+  "since": "0.1.0"
+}

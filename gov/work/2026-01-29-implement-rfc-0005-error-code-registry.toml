@@ -1,0 +1,27 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-29-001"
+title = "Implement [[RFC-0005]] error code registry"
+status = "done"
+created = "2026-01-29"
+started = "2026-01-29"
+completed = "2026-01-29"
+refs = ["RFC-0005"]
+
+[content]
+description = "Build the centralized error code registry per [[RFC-0005:C-CODES]]. All error messages must use the canonical templates defined in the RFC. Migrate existing commands (gateway, compiler, resolver, analytics) to use the new error types."
+
+[[content.acceptance_criteria]]
+text = "Build centralized error code registry in `error.rs`"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Migrate all commands to use canonical error messages per [[RFC-0005:C-CODES]]"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "All existing tests pass"
+status = "done"
+category = "chore"
