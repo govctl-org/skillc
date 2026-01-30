@@ -7,24 +7,41 @@
 
 **The development kit for [Agent Skills](https://agentskills.io/)** — create, validate, and optimize skills that extend AI agent capabilities.
 
-```text
-                        SKILL.md (source)
-                              │
-              ┌───────────────┴───────────────┐
-              │                               │
-              ▼                               ▼
-   ┌─────────────────────┐         ┌─────────────────────┐
-   │    Local Testing    │         │      Publishing     │
-   │                     │         │                     │
-   │  skc lint           │         │  git push           │
-   │  skc build          │         │         ↓           │
-   │  skc stats          │         │  npx skills add     │
-   │         ↓           │         │         ↓           │
-   │  test with agent    │         │  users get source   │
-   └─────────────────────┘         └─────────────────────┘
+## Who is this for?
+
+### Skill Authors
+
+Create, validate, and test skills locally before publishing with confidence:
+
+```mermaid
+flowchart LR
+    A[skc init] --> B[skc lint]
+    B --> C[skc build]
+    C --> D[skc stats]
+    D --> E[git push]
+
+    A -.- A1[scaffold]
+    B -.- B1[validate]
+    C -.- C1[test locally]
+    D -.- D1[trace usage]
+    E -.- E1[publish]
 ```
 
-> **Note:** `skc build` is for local testing only. Published skills are source files — no compilation needed by consumers.
+### Power Users
+
+Compile any skill to unlock full-text search and usage analytics:
+
+```mermaid
+flowchart LR
+    A[skc build] --> B[skc search]
+    B --> C[skc stats]
+
+    A -.- A1[enable indexing]
+    B -.- B1[find content]
+    C -.- C1[track usage]
+```
+
+> **Note:** `skc build` is optional for consumers. Published skills work without compilation — building just enables search and analytics.
 
 ## Installation
 
@@ -34,15 +51,25 @@ cargo install skillc
 
 ## Quick Start
 
+**For skill authors:**
+
 ```bash
 skc init my-skill           # Create a new skill
 # ... edit SKILL.md ...
 skc lint my-skill           # Validate quality
 skc build my-skill          # Build for local testing
+skc stats my-skill          # See how agents use your skill
 git push origin main        # Publish to GitHub
 ```
 
-Users install your skill with: `npx skills add username/my-skill`
+**For power users:**
+
+```bash
+npx skills add user/skill   # Install a skill
+skc build user-skill        # Enable search + analytics
+skc search user-skill "api" # Full-text search
+skc stats user-skill        # Usage insights
+```
 
 ## Commands
 
