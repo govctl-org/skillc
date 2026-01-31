@@ -1,20 +1,16 @@
 {
   "rfc_id": "RFC-0008",
   "title": "Skill Authoring Standard",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "status": "normative",
   "phase": "test",
-  "owners": [
-    "@govctl-org"
-  ],
+  "owners": ["@govctl-org"],
   "created": "2026-01-29",
   "updated": "2026-01-31",
   "sections": [
     {
       "title": "Summary",
-      "clauses": [
-        "clauses/C-OVERVIEW.json"
-      ]
+      "clauses": ["clauses/C-OVERVIEW.json"]
     },
     {
       "title": "Specification",
@@ -27,12 +23,15 @@
     },
     {
       "title": "Extensions",
-      "clauses": [
-        "clauses/C-EXTENSIONS.json"
-      ]
+      "clauses": ["clauses/C-EXTENSIONS.json"]
     }
   ],
   "changelog": [
+    {
+      "version": "0.2.1",
+      "date": "2026-01-31",
+      "notes": "Add C-REFERENCE-FRONTMATTER for optional description in reference files"
+    },
     {
       "version": "0.2.0",
       "date": "2026-01-31",
@@ -44,5 +43,5 @@
       "notes": "Initial release"
     }
   ],
-  "signature": "531879847a456faa11e3214e0c0fe53aa28afe35bb82c7eb86fc61430d89852e"
+  "signature": "ef8735e824cc39587a3ca45ee0617ae690992c0731b6a6984e9c08e05ddd8c8b"
 }

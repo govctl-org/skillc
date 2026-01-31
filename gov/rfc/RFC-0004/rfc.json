@@ -28,7 +28,10 @@
     {
       "version": "0.1.0",
       "date": "2026-01-30",
-      "notes": "Initial release"
+      "notes": "Initial release",
+      "added": [
+        "C-INDEX updated with headings table, schema version bumped to 2"
+      ]
     }
   ]
 }

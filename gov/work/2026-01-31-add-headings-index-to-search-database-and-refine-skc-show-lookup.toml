@@ -1,0 +1,50 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-31-005"
+title = "Add headings index to search database and refine skc show lookup"
+status = "done"
+created = "2026-01-31"
+started = "2026-01-31"
+completed = "2026-01-31"
+refs = [
+    "RFC-0002",
+    "RFC-0004",
+]
+
+[content]
+description = "Add a `headings` table to the search index database to enable fast index-based lookup for `skc show`. Refine the show command to strip em-dash suffixes from queries and provide suggestions when no match is found."
+
+[[content.acceptance_criteria]]
+text = "Headings table added to search index database"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "skc show uses index-based lookup instead of runtime parsing"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Em-dash suffix stripping for section queries"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Suggestions on section not found"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "RFC-0004 C-INDEX updated with headings table schema"
+status = "done"
+category = "changed"
+
+[[content.acceptance_criteria]]
+text = "RFC-0002 C-SHOW updated with lookup behavior"
+status = "done"
+category = "changed"
+
+[[content.acceptance_criteria]]
+text = "All tests pass"
+status = "done"
+category = "chore"

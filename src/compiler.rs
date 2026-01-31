@@ -54,10 +54,7 @@ pub fn compile(source_dir: &Path, runtime_dir: &Path) -> Result<()> {
 
     // Extract reference descriptions per [[RFC-0008:C-REFERENCE-FRONTMATTER]]
     let descriptions = extract_reference_descriptions(source_dir, &md_files);
-    verbose!(
-        "build: found {} reference descriptions",
-        descriptions.len()
-    );
+    verbose!("build: found {} reference descriptions", descriptions.len());
 
     // Compute source hash
     let source_hash = compute_source_hash(source_dir)?;
@@ -301,10 +298,10 @@ fn extract_reference_descriptions(
         }
 
         let full_path = source_dir.join(file);
-        if let Ok(content) = fs::read_to_string(&full_path) {
-            if let Some(desc) = extract_description_from_frontmatter(&content) {
-                descriptions.insert(file.clone(), desc);
-            }
+        if let Ok(content) = fs::read_to_string(&full_path)
+            && let Some(desc) = extract_description_from_frontmatter(&content)
+        {
+            descriptions.insert(file.clone(), desc);
         }
     }
 
@@ -463,9 +460,10 @@ fn build_section_entries(
     }
 
     // Add "References" section only if there are reference entries
+    // Include hint per [[RFC-0001:C-SECTIONS]] to clarify query format
     if !reference_entries.is_empty() {
         entries.push(SectionEntry {
-            text: "References".to_string(),
+            text: "References (query by title only)".to_string(),
             indent: 0,
         });
         entries.extend(reference_entries);
@@ -662,7 +660,7 @@ description: A test skill
         assert_eq!(entries.len(), 4);
         assert_eq!(entries[0].text, "My Skill");
         assert_eq!(entries[0].indent, 0);
-        assert_eq!(entries[1].text, "References");
+        assert_eq!(entries[1].text, "References (query by title only)");
         assert_eq!(entries[1].indent, 0);
         assert_eq!(entries[2].text, "Reference Doc");
         assert_eq!(entries[2].indent, 1);
@@ -720,7 +718,7 @@ description: A test skill
         // Only first H1 from docs/multi.md should be included
         assert_eq!(entries.len(), 3);
         assert_eq!(entries[0].text, "My Skill");
-        assert_eq!(entries[1].text, "References");
+        assert_eq!(entries[1].text, "References (query by title only)");
         assert_eq!(entries[2].text, "First H1");
     }
 
@@ -759,7 +757,7 @@ description: A test skill
 
         // Check for References section
         assert!(
-            entries.iter().any(|e| e.text == "References"),
+            entries.iter().any(|e| e.text.starts_with("References")),
             "Should have References section"
         );
 
@@ -839,7 +837,7 @@ description: A test skill
         // Should fallback to filename for docs/no-h1.md
         assert_eq!(entries.len(), 3);
         assert_eq!(entries[0].text, "My Skill");
-        assert_eq!(entries[1].text, "References");
+        assert_eq!(entries[1].text, "References (query by title only)");
         assert_eq!(entries[2].text, "docs/no-h1.md");
         assert_eq!(entries[2].indent, 1);
     }
@@ -939,11 +937,8 @@ description: Unquoted value
 
         assert_eq!(entries.len(), 4); // My Skill + References + 2 refs
         assert_eq!(entries[0].text, "My Skill");
-        assert_eq!(entries[1].text, "References");
-        assert_eq!(
-            entries[2].text,
-            "Clap Patterns — Advanced argument parsing"
-        );
+        assert_eq!(entries[1].text, "References (query by title only)");
+        assert_eq!(entries[2].text, "Clap Patterns — Advanced argument parsing");
         assert_eq!(entries[3].text, "Error Handling"); // No description
     }
 }

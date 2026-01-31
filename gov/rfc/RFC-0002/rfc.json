@@ -27,7 +27,8 @@
     {
       "version": "0.1.0",
       "date": "2026-01-30",
-      "notes": "Initial release"
+      "notes": "Initial release",
+      "added": ["C-SHOW updated with em-dash stripping and suggestions"]
     }
   ]
 }

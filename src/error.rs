@@ -158,6 +158,8 @@ pub enum SkillcError {
 
     // E020–E029: Gateway errors (RFC-0002)
     SectionNotFound(String),
+    /// Section not found with suggestions per [[RFC-0002:C-SHOW]]
+    SectionNotFoundWithSuggestions(String, String),
     FileNotFound(String),
     DirectoryNotFound(String),
 
@@ -201,6 +203,7 @@ impl SkillcError {
             SkillcError::InvalidFrontmatter(_) => ErrorCode::E011,
             SkillcError::PathEscapesRoot(_) => ErrorCode::E012,
             SkillcError::SectionNotFound(_) => ErrorCode::E020,
+            SkillcError::SectionNotFoundWithSuggestions(_, _) => ErrorCode::E020,
             SkillcError::FileNotFound(_) => ErrorCode::E021,
             SkillcError::DirectoryNotFound(_) => ErrorCode::E022,
             SkillcError::InvalidQueryType(_) => ErrorCode::E030,
@@ -246,6 +249,9 @@ impl SkillcError {
             }
             SkillcError::PathEscapesRoot(s) => format!("path escapes skill root: '{}'", s),
             SkillcError::SectionNotFound(s) => format!("section not found: '{}'", s),
+            SkillcError::SectionNotFoundWithSuggestions(s, suggestions) => {
+                format!("section not found: '{}'{}", s, suggestions)
+            }
             SkillcError::FileNotFound(s) => format!("file not found: '{}'", s),
             SkillcError::DirectoryNotFound(s) => format!("directory not found: '{}'", s),
             SkillcError::InvalidQueryType(s) => format!("invalid query type: '{}'", s),

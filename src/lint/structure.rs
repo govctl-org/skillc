@@ -262,4 +262,78 @@ mod tests {
         // Should have no structure warnings
         assert!(result.diagnostics.is_empty());
     }
+
+    #[test]
+    fn test_lint_heading_hierarchy_valid() {
+        // Valid hierarchy: H1 -> H2 -> H3
+        let content = "# Title\n\n## Section\n\n### Subsection\n";
+        let mut result = make_result();
+        lint_heading_hierarchy(content, Path::new("test.md"), Path::new("."), &mut result);
+
+        assert!(
+            result.diagnostics.is_empty(),
+            "Valid hierarchy should have no warnings"
+        );
+    }
+
+    #[test]
+    fn test_lint_heading_hierarchy_skl204_first_not_h1() {
+        // First heading is H2, not H1
+        let content = "## Section\n\n### Subsection\n";
+        let mut result = make_result();
+        lint_heading_hierarchy(content, Path::new("test.md"), Path::new("."), &mut result);
+
+        assert_eq!(result.diagnostics.len(), 1);
+        assert_eq!(result.diagnostics[0].rule_id, "SKL204");
+        assert!(
+            result.diagnostics[0]
+                .message
+                .contains("first heading is H2")
+        );
+    }
+
+    #[test]
+    fn test_lint_heading_hierarchy_skl205_skipped_level() {
+        // Skip from H1 to H3
+        let content = "# Title\n\n### Subsection\n";
+        let mut result = make_result();
+        lint_heading_hierarchy(content, Path::new("test.md"), Path::new("."), &mut result);
+
+        assert_eq!(result.diagnostics.len(), 1);
+        assert_eq!(result.diagnostics[0].rule_id, "SKL205");
+        assert!(
+            result.diagnostics[0]
+                .message
+                .contains("skips from H1 to H3")
+        );
+    }
+
+    #[test]
+    fn test_lint_heading_hierarchy_skl205_multiple_skips() {
+        // Multiple skipped levels
+        let content = "# Title\n\n### Skip one\n\n##### Skip two\n";
+        let mut result = make_result();
+        lint_heading_hierarchy(content, Path::new("test.md"), Path::new("."), &mut result);
+
+        // Should have 2 warnings for SKL205
+        let skl205_count = result
+            .diagnostics
+            .iter()
+            .filter(|d| d.rule_id == "SKL205")
+            .count();
+        assert_eq!(skl205_count, 2);
+    }
+
+    #[test]
+    fn test_lint_heading_hierarchy_going_up_is_ok() {
+        // Going up levels (H3 -> H1) is allowed
+        let content = "# Title\n\n## Section\n\n### Sub\n\n# Another Title\n\n## Another Section\n";
+        let mut result = make_result();
+        lint_heading_hierarchy(content, Path::new("test.md"), Path::new("."), &mut result);
+
+        assert!(
+            result.diagnostics.is_empty(),
+            "Going up levels should not trigger warnings"
+        );
+    }
 }

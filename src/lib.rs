@@ -31,6 +31,7 @@ pub mod deploy;
 pub mod error;
 pub mod frontmatter;
 pub mod gateway;
+pub mod index;
 pub mod init;
 pub mod lint;
 pub mod list;

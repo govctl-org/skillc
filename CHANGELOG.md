@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- SKL204 heading-first-h1 lint rule per [RFC-0008:C-REGISTRY](docs/rfc/RFC-0008.md#rfc-0008c-registry) (WI-2026-01-31-003)
+- SKL205 heading-hierarchy lint rule per [RFC-0008:C-REGISTRY](docs/rfc/RFC-0008.md#rfc-0008c-registry) (WI-2026-01-31-003)
+- Parse optional description from reference file frontmatter (WI-2026-01-31-004)
+- Display description inline with em-dash in stub References section (WI-2026-01-31-004)
+- Truncate descriptions longer than 120 chars with ellipsis (WI-2026-01-31-004)
+- Headings table added to search index database (WI-2026-01-31-005)
+- skc show uses index-based lookup instead of runtime parsing (WI-2026-01-31-005)
+- Em-dash suffix stripping for section queries (WI-2026-01-31-005)
+- Suggestions on section not found (WI-2026-01-31-005)
+
+### Changed
+
+- Stub section listing per [RFC-0001:C-SECTIONS](docs/rfc/RFC-0001.md#rfc-0001c-sections) - SKILL.md shows H1 and H2 only, other files show H1/filename with optional description (WI-2026-01-31-003)
+- RFC-0004 C-INDEX updated with headings table schema (WI-2026-01-31-005)
+- RFC-0002 C-SHOW updated with lookup behavior (WI-2026-01-31-005)
+
 ## [0.1.1] - 2026-01-31
 
 ### Added

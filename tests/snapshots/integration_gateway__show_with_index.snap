@@ -1,0 +1,11 @@
+---
+source: tests/integration_gateway.rs
+expression: output
+---
+## Getting Started
+
+Intro text.
+
+### Prerequisites
+
+You need these things.

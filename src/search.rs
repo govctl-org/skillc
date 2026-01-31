@@ -4,6 +4,7 @@
 
 use crate::config::{ensure_dir, get_cwd};
 use crate::error::{Result, SkillcError};
+use crate::index::{self, SCHEMA_VERSION};
 use crate::logging::{LogEntry, get_run_id, init_log_db, log_access_with_fallback};
 use crate::resolver::{ResolvedSkill, resolve_skill};
 use crate::{OutputFormat, verbose};
@@ -12,7 +13,6 @@ use crossterm::style::Stylize;
 use lazy_regex::{Lazy, Regex, lazy_regex};
 use rusqlite::{Connection, params};
 use serde::Serialize;
-use sha2::{Digest, Sha256};
 use std::fs;
 use std::io::IsTerminal;
 use std::path::{Path, PathBuf};
@@ -21,9 +21,6 @@ use walkdir::WalkDir;
 
 /// Regex for parsing markdown headings (validated at compile time).
 static HEADING_RE: Lazy<Regex> = lazy_regex!(r"^(#{1,6})\s+(.+)$");
-
-/// Current schema version for the search index.
-const SCHEMA_VERSION: i32 = 1;
 
 /// Search result entry.
 #[derive(Debug, Serialize)]
@@ -41,23 +38,17 @@ pub struct SearchResponse {
     pub results: Vec<SearchResult>,
 }
 
-/// Compute hash16 for index filename per [[RFC-0004:C-INDEX]].
+// Re-export HeadingEntry from index module for backward compatibility
+pub use crate::index::HeadingEntry;
+
+/// Compute hash16 for index filename (delegates to index module).
 fn compute_hash16(source_path: &Path) -> String {
-    let canonical = source_path
-        .canonicalize()
-        .unwrap_or_else(|_| source_path.to_path_buf());
-    let mut hasher = Sha256::new();
-    hasher.update(canonical.to_string_lossy().as_bytes());
-    let hash = format!("{:x}", hasher.finalize());
-    hash[..16].to_string()
+    index::compute_hash16(source_path)
 }
 
-/// Get the index database path for a skill.
+/// Get the index database path (delegates to index module).
 fn get_index_path(runtime_dir: &Path, source_dir: &Path) -> PathBuf {
-    let hash16 = compute_hash16(source_dir);
-    runtime_dir
-        .join(".skillc-meta")
-        .join(format!("search-{}.db", hash16))
+    index::get_index_path(runtime_dir, source_dir)
 }
 
 /// Determine the tokenizer preference per [[RFC-0009:C-TOKENIZER]] and [[RFC-0004:C-INDEX]].
@@ -257,7 +248,7 @@ pub fn build_index(source_dir: &Path, runtime_dir: &Path, source_hash: &str) -> 
     Ok(())
 }
 
-/// Create a new search index.
+/// Create a new search index per [[RFC-0004:C-INDEX]].
 fn create_index(
     index_path: &Path,
     source_dir: &Path,
@@ -266,12 +257,29 @@ fn create_index(
 ) -> Result<()> {
     let conn = Connection::open(index_path)?;
 
-    // Create FTS5 table
+    // Create FTS5 table for full-text search
     let create_fts = format!(
         "CREATE VIRTUAL TABLE sections USING fts5(file, section, content, tokenize='{}')",
         tokenizer
     );
     conn.execute(&create_fts, [])?;
+
+    // Create headings table for section lookup per [[RFC-0002:C-SHOW]]
+    conn.execute(
+        "CREATE TABLE headings (
+            id INTEGER PRIMARY KEY,
+            file TEXT NOT NULL,
+            text TEXT NOT NULL,
+            level INTEGER NOT NULL,
+            start_line INTEGER NOT NULL,
+            end_line INTEGER NOT NULL
+        )",
+        [],
+    )?;
+    conn.execute(
+        "CREATE INDEX idx_headings_text ON headings(text COLLATE NOCASE)",
+        [],
+    )?;
 
     // Create metadata table
     conn.execute(
@@ -375,7 +383,7 @@ fn index_markdown(conn: &Connection, source_dir: &Path, file_path: &Path) -> Res
         return Ok(());
     }
 
-    // Extract each section
+    // Extract each section and populate both tables
     for (idx, (start_line, level, heading_text)) in headings.iter().enumerate() {
         // Find end of section (next heading of equal or higher level)
         let end_line = headings
@@ -385,12 +393,26 @@ fn index_markdown(conn: &Connection, source_dir: &Path, file_path: &Path) -> Res
             .map(|(line, _, _)| *line)
             .unwrap_or(lines.len());
 
-        // Extract content
+        // Extract content for FTS
         let section_content = lines[*start_line..end_line].join("\n");
 
+        // Insert into sections table (for full-text search)
         conn.execute(
             "INSERT INTO sections (file, section, content) VALUES (?1, ?2, ?3)",
             params![relative_path, heading_text, section_content],
+        )?;
+
+        // Insert into headings table (for section lookup per [[RFC-0002:C-SHOW]])
+        // Line numbers are 1-based in the index
+        conn.execute(
+            "INSERT INTO headings (file, text, level, start_line, end_line) VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![
+                relative_path,
+                heading_text,
+                *level as i64,
+                (*start_line + 1) as i64,  // Convert to 1-based
+                (end_line + 1) as i64      // end_line is exclusive, 1-based
+            ],
         )?;
     }
 
