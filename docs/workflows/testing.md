@@ -61,12 +61,21 @@ Opens a specific file from the skill. Use this for non-markdown files or when yo
 skc sources my-skill
 ```
 
-Lists all files in the skill:
+Lists all files in the skill as a tree:
 
 ```
-SKILL.md
-examples/usage.md
-reference/api.md
+my-skill/
+├── SKILL.md
+├── examples/
+│   └── usage.md
+└── reference/
+    └── api.md
+```
+
+Use `--format json` for machine-readable output:
+
+```bash
+skc sources my-skill --format json
 ```
 
 ### Search content

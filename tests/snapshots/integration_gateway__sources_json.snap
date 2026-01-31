@@ -1,0 +1,18 @@
+---
+source: tests/integration_gateway.rs
+expression: output
+---
+[
+  {
+    "path": "docs",
+    "type": "dir"
+  },
+  {
+    "path": "docs/advanced.md",
+    "type": "file"
+  },
+  {
+    "path": "SKILL.md",
+    "type": "file"
+  }
+]

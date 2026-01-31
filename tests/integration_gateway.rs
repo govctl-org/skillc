@@ -11,7 +11,7 @@ fn build_skill(ctx: &TestContext) {
     result.assert_success("build skill for gateway");
 }
 
-/// Test outline command output matches snapshot
+/// Test outline command output matches snapshot (unbuilt skill, filesystem fallback)
 #[test]
 fn test_outline_snapshot() {
     let ctx = TestContext::new().with_rich_skill("test-skill");
@@ -19,13 +19,38 @@ fn test_outline_snapshot() {
     assert_snapshot!("outline", output);
 }
 
-/// Test outline --level filters headings by level per [[RFC-0002:C-OUTLINE]]
+/// Test outline --level filters headings by level per [[RFC-0002:C-OUTLINE]] (unbuilt)
 #[test]
 fn test_outline_level_filter() {
     let ctx = TestContext::new().with_rich_skill("test-skill");
     // --level 2 should only show # and ## headings, not ### (Prerequisites)
     let output = ctx.run_skc_text(&["outline", ctx.skill_name(), "--level", "2"]);
     assert_snapshot!("outline_level_2", output);
+}
+
+/// Test outline uses pre-built index when available per [[RFC-0002:C-OUTLINE]]
+#[test]
+fn test_outline_with_index() {
+    let ctx = TestContext::new()
+        .with_rich_skill("test-skill")
+        .with_mock_agent();
+    build_skill(&ctx);
+
+    // Should produce same output as unbuilt, but use the index internally
+    let output = ctx.run_skc_text(&["outline", ctx.skill_name()]);
+    assert_snapshot!("outline_with_index", output);
+}
+
+/// Test outline --level with pre-built index
+#[test]
+fn test_outline_level_filter_with_index() {
+    let ctx = TestContext::new()
+        .with_rich_skill("test-skill")
+        .with_mock_agent();
+    build_skill(&ctx);
+
+    let output = ctx.run_skc_text(&["outline", ctx.skill_name(), "--level", "2"]);
+    assert_snapshot!("outline_level_2_with_index", output);
 }
 
 /// Test show command output matches snapshot per [[RFC-0002:C-SHOW]]
@@ -122,4 +147,65 @@ fn test_show_suggestions() {
     assert!(result.stderr.contains("section not found"));
     assert!(result.stderr.contains("Did you mean"));
     assert!(result.stderr.contains("Getting Started"));
+}
+
+// === Sources command tests per [[RFC-0002:C-SOURCES]] ===
+
+/// Test sources command text output (tree format) per [[RFC-0002:C-SOURCES]]
+#[test]
+fn test_sources_snapshot() {
+    let ctx = TestContext::new().with_rich_skill("test-skill");
+    let output = ctx.run_skc_text(&["sources", ctx.skill_name()]);
+    assert_snapshot!("sources", output);
+}
+
+/// Test sources command JSON output per [[RFC-0002:C-SOURCES]]
+#[test]
+fn test_sources_json() {
+    let ctx = TestContext::new().with_rich_skill("test-skill");
+    let output = ctx.run_skc_json(&["sources", ctx.skill_name(), "--format", "json"]);
+    assert_snapshot!("sources_json", output);
+}
+
+/// Test sources --depth limits directory traversal per [[RFC-0002:C-SOURCES]]
+#[test]
+fn test_sources_depth() {
+    let ctx = TestContext::new().with_rich_skill("test-skill");
+    // --depth 1 should only show top-level entries, not contents of docs/
+    let output = ctx.run_skc_text(&["sources", ctx.skill_name(), "--depth", "1"]);
+    assert_snapshot!("sources_depth_1", output);
+}
+
+/// Test sources --dir filters to subdirectory per [[RFC-0002:C-SOURCES]]
+#[test]
+fn test_sources_subdir() {
+    let ctx = TestContext::new().with_rich_skill("test-skill");
+    let output = ctx.run_skc_text(&["sources", ctx.skill_name(), "--dir", "docs"]);
+    assert_snapshot!("sources_subdir", output);
+}
+
+/// Test sources --pattern filters by glob per [[RFC-0002:C-SOURCES]]
+#[test]
+fn test_sources_pattern() {
+    let ctx = TestContext::new().with_rich_skill("test-skill");
+    // Only show .md files
+    let output = ctx.run_skc_text(&["sources", ctx.skill_name(), "--pattern", "*.md"]);
+    assert_snapshot!("sources_pattern", output);
+}
+
+/// Test sources --limit truncates output per [[RFC-0002:C-SOURCES]]
+#[test]
+fn test_sources_limit() {
+    let ctx = TestContext::new().with_rich_skill("test-skill");
+    let output = ctx.run_skc_text(&["sources", ctx.skill_name(), "--limit", "2"]);
+    assert_snapshot!("sources_limit", output);
+}
+
+/// Test sources rejects path traversal per [[RFC-0002:C-SOURCES]]
+#[test]
+fn test_sources_path_escape() {
+    let ctx = TestContext::new().with_rich_skill("test-skill");
+    let result = ctx.run_skc(&["sources", ctx.skill_name(), "--dir", "../.."]);
+    assert!(!result.success);
+    assert!(result.stderr.contains("path escapes") || result.stderr.contains("not found"));
 }

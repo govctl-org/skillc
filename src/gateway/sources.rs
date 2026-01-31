@@ -321,29 +321,40 @@ fn count_files_in_dir(dir: &Path, pattern: &Option<glob::Pattern>) -> Result<usi
     Ok(count)
 }
 
-/// Mark the last entry at each depth level
+/// Mark the last entry at each depth level - O(n) algorithm
+///
+/// An entry is "last" if there are no more sibling entries at the same depth
+/// within the same parent subtree.
 fn mark_last_entries(entries: &mut [TreeEntry]) {
     if entries.is_empty() {
         return;
     }
 
-    // For each depth, find the actual last entry considering hierarchy
-    for i in (0..entries.len()).rev() {
+    let n = entries.len();
+
+    // For each entry, scan forward to determine if it's the last at its depth
+    // within its parent's subtree. An entry is "last" if:
+    // - There are no more entries at the same depth before we exit the subtree (depth < current)
+    // - OR we reach the end of entries
+    //
+    // O(n) approach: process in reverse, tracking next sibling at each depth
+    let mut next_at_depth: Vec<Option<usize>> = vec![None; 20]; // Max reasonable depth
+
+    for i in (0..n).rev() {
         let depth = entries[i].depth;
-        // Check if there are any more entries at this depth after this one
-        // that are at the same parent level
-        let mut is_last = true;
-        for subsequent in entries.iter().skip(i + 1) {
-            if subsequent.depth == depth {
-                is_last = false;
-                break;
-            }
-            if subsequent.depth < depth {
-                // We've exited this subtree
-                break;
-            }
+
+        // Check if there's a next sibling at this depth
+        entries[i].is_last = next_at_depth.get(depth).copied().flatten().is_none();
+
+        // Update: this entry is now the "next" entry for its depth
+        if depth < next_at_depth.len() {
+            next_at_depth[depth] = Some(i);
         }
-        entries[i].is_last = is_last;
+
+        // Clear deeper levels (we've exited those subtrees going backwards)
+        for slot in next_at_depth.iter_mut().skip(depth + 1) {
+            *slot = None;
+        }
     }
 }
 

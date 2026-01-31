@@ -1,12 +1,12 @@
 {
   "rfc_id": "RFC-0004",
   "title": "Search Protocol",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "status": "normative",
   "phase": "test",
   "owners": ["@govctl-org"],
   "created": "2026-01-28",
-  "updated": "2026-01-30",
+  "updated": "2026-01-31",
   "sections": [
     {
       "title": "Summary",
@@ -26,12 +26,15 @@
   ],
   "changelog": [
     {
+      "version": "0.2.0",
+      "date": "2026-01-31",
+      "notes": "C-INDEX updated with headings table, schema version bumped to 2"
+    },
+    {
       "version": "0.1.0",
       "date": "2026-01-30",
-      "notes": "Initial release",
-      "added": [
-        "C-INDEX updated with headings table, schema version bumped to 2"
-      ]
+      "notes": "Initial release"
     }
-  ]
+  ],
+  "signature": "72a6a5ccaa9dfbddd02590f892babad2362bdae67c5fd2210f7fafd6218d2d56"
 }

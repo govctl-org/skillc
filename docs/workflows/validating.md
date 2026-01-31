@@ -12,35 +12,42 @@ This checks your skill against quality rules and reports any issues.
 
 ## What lint checks
 
-### Structure rules (SKL0xx)
+See [RFC-0008:C-REGISTRY](../rfc/RFC-0008.md#rfc-0008c-registry) for the full rule specification.
+
+### Meta rules (SKL0xx)
 
 - **SKL001**: Skip compiled skills (internal)
-- **SKL002**: `SKILL.md` must exist at skill root
-- **SKL003**: No empty directories
 
-### File rules (SKL1xx)
+### Frontmatter rules (SKL1xx)
 
-- **SKL101**: Frontmatter must be valid YAML
-- **SKL102**: `name` field required in frontmatter
-- **SKL103**: `description` field required in frontmatter
-- **SKL104**: `name` must match directory name
-- **SKL105**: `description` should be 10-200 characters
-- **SKL106**: Title heading should match skill name
-- **SKL107**: Skill should have activation triggers
-- **SKL108**: `description` shouldn't start with "A skill..."
+- **SKL100**: Frontmatter must be valid YAML
+- **SKL101**: `name` field required
+- **SKL102**: `name` format (lowercase, hyphens, digits only)
+- **SKL103**: `name` length (1-64 chars)
+- **SKL104**: `name` should match directory name
+- **SKL105**: `description` field required
+- **SKL106**: `description` must be non-empty
+- **SKL107**: `description` length (10-200 chars recommended)
+- **SKL108**: Include activation triggers
 - **SKL109**: Only known frontmatter fields allowed
 
-### Markdown rules (SKL2xx)
+### Structure rules (SKL2xx)
 
-- **SKL201**: Headings should use ATX style (`#`)
-- **SKL202**: Single H1 per file
-- **SKL203**: No skipped heading levels
-- **SKL204**: No trailing punctuation in headings
+- **SKL201**: SKILL.md size warning (>500 lines)
+- **SKL202**: Missing H1 heading
+- **SKL203**: H1 should match skill name
+- **SKL204**: First heading should be H1
+- **SKL205**: No skipped heading levels
 
 ### Link rules (SKL3xx)
 
 - **SKL301**: Internal links must resolve
 - **SKL302**: Anchor links must resolve
+- **SKL303**: Links must not escape skill root
+
+### File rules (SKL4xx)
+
+- **SKL401**: No orphan files (files not linked from SKILL.md)
 
 ## Output formats
 

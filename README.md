@@ -105,6 +105,7 @@ skc show my-skill --section "API" --max-lines 50  # Truncate output
 skc open my-skill SKILL.md --max-lines 100        # Read first 100 lines
 skc search my-skill "borrow checker"
 skc sources my-skill --pattern "*.md"
+skc sources my-skill --format json          # JSON output
 
 # Analytics
 skc stats my-skill --group-by sections

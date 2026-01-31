@@ -1,0 +1,6 @@
+---
+source: tests/integration_gateway.rs
+expression: output
+---
+test-skill/
+└── advanced.md

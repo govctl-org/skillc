@@ -6,7 +6,7 @@ mod common;
 
 use common::{TestContext, create_minimal_skill, fallback_db_path, runtime_db_path};
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
 /// Threshold for "stale" logs in tests (2 days in seconds).
@@ -402,5 +402,184 @@ fn test_stale_warning_once_per_invocation() {
         "should warn at most once: {} (count: {})",
         result.stderr,
         warning_count
+    );
+}
+
+// ============================================================================
+// Logging integration tests per [[RFC-0007:C-LOGGING]]
+// ============================================================================
+
+/// Get path to project-local runtime logs database.
+fn project_runtime_db(project_dir: &Path, skill_name: &str) -> PathBuf {
+    project_dir
+        .join(".skillc")
+        .join("runtime")
+        .join(skill_name)
+        .join(".skillc-meta")
+        .join("logs.db")
+}
+
+/// Test that gateway commands create logs in runtime store.
+#[test]
+fn test_logging_creates_runtime_logs() {
+    let ctx = TestContext::new().with_rich_skill("log-test");
+
+    // Run a few gateway commands
+    let _ = ctx.run_skc(&["outline", "log-test"]);
+    let _ = ctx.run_skc(&["show", "log-test", "--section", "Getting Started"]);
+
+    // Verify logs were created in project runtime store
+    let runtime_db = project_runtime_db(ctx.project_dir(), "log-test");
+    assert!(
+        runtime_db.exists(),
+        "runtime logs should exist at {}",
+        runtime_db.display()
+    );
+
+    let conn = rusqlite::Connection::open(&runtime_db).expect("open runtime db");
+    let count: i64 = conn
+        .query_row("SELECT COUNT(*) FROM access_log", [], |row| row.get(0))
+        .expect("count entries");
+    assert!(
+        count >= 2,
+        "should have at least 2 log entries, got {}",
+        count
+    );
+}
+
+/// Test that logs contain correct command names.
+#[test]
+fn test_logging_records_command_names() {
+    let ctx = TestContext::new().with_rich_skill("cmd-test");
+
+    let _ = ctx.run_skc(&["outline", "cmd-test"]);
+    let _ = ctx.run_skc(&["show", "cmd-test", "--section", "API Reference"]);
+
+    let runtime_db = project_runtime_db(ctx.project_dir(), "cmd-test");
+    let conn = rusqlite::Connection::open(&runtime_db).expect("open db");
+
+    let commands: Vec<String> = {
+        let mut stmt = conn
+            .prepare("SELECT DISTINCT command FROM access_log ORDER BY command")
+            .expect("prepare");
+        stmt.query_map([], |row| row.get(0))
+            .expect("query")
+            .map(|r| r.expect("row"))
+            .collect()
+    };
+
+    assert!(
+        commands.contains(&"outline".to_string()),
+        "should log outline command: {:?}",
+        commands
+    );
+    assert!(
+        commands.contains(&"show".to_string()),
+        "should log show command: {:?}",
+        commands
+    );
+}
+
+/// Test that logs contain skill path.
+#[test]
+fn test_logging_records_skill_path() {
+    let ctx = TestContext::new().with_rich_skill("path-test");
+
+    let _ = ctx.run_skc(&["outline", "path-test"]);
+
+    let runtime_db = project_runtime_db(ctx.project_dir(), "path-test");
+    let conn = rusqlite::Connection::open(&runtime_db).expect("open db");
+
+    let skill_path: String = conn
+        .query_row(
+            "SELECT skill_path FROM access_log WHERE command = 'outline' LIMIT 1",
+            [],
+            |row| row.get(0),
+        )
+        .expect("query skill_path");
+
+    assert!(
+        skill_path.contains("path-test"),
+        "skill_path should contain skill name: {}",
+        skill_path
+    );
+}
+
+/// Test that errors are logged.
+#[test]
+fn test_logging_records_errors() {
+    let ctx = TestContext::new().with_rich_skill("err-test");
+
+    // Run a command that will fail (invalid section)
+    let _ = ctx.run_skc(&["show", "err-test", "--section", "NonexistentSection12345"]);
+
+    let runtime_db = project_runtime_db(ctx.project_dir(), "err-test");
+    let conn = rusqlite::Connection::open(&runtime_db).expect("open db");
+
+    let error: Option<String> = conn
+        .query_row(
+            "SELECT error FROM access_log WHERE command = 'show' ORDER BY id DESC LIMIT 1",
+            [],
+            |row| row.get(0),
+        )
+        .expect("query error");
+
+    assert!(
+        error.is_some(),
+        "error field should be populated for failed command"
+    );
+}
+
+/// Test that run_id is consistent (from SKC_RUN_ID env var).
+#[test]
+fn test_logging_uses_run_id_env() {
+    let ctx = TestContext::new().with_rich_skill("runid-test");
+
+    // TestContext sets SKC_RUN_ID to "TEST-RUN-ID"
+    let _ = ctx.run_skc(&["outline", "runid-test"]);
+
+    let runtime_db = project_runtime_db(ctx.project_dir(), "runid-test");
+    let conn = rusqlite::Connection::open(&runtime_db).expect("open db");
+
+    let run_id: String = conn
+        .query_row("SELECT run_id FROM access_log LIMIT 1", [], |row| {
+            row.get(0)
+        })
+        .expect("query run_id");
+
+    assert_eq!(
+        run_id, "TEST-RUN-ID",
+        "should use SKC_RUN_ID from environment"
+    );
+}
+
+/// Test that multiple commands in same session share run_id.
+#[test]
+fn test_logging_same_run_id_per_session() {
+    let ctx = TestContext::new().with_rich_skill("session-test");
+
+    // Run multiple commands - each invocation is separate, but has same env
+    let _ = ctx.run_skc(&["outline", "session-test"]);
+    let _ = ctx.run_skc(&["show", "session-test", "--section", "Getting Started"]);
+
+    let runtime_db = project_runtime_db(ctx.project_dir(), "session-test");
+    let conn = rusqlite::Connection::open(&runtime_db).expect("open db");
+
+    let run_ids: Vec<String> = {
+        let mut stmt = conn
+            .prepare("SELECT DISTINCT run_id FROM access_log")
+            .expect("prepare");
+        stmt.query_map([], |row| row.get(0))
+            .expect("query")
+            .map(|r| r.expect("row"))
+            .collect()
+    };
+
+    // All should have the same run_id from TestContext
+    assert_eq!(
+        run_ids.len(),
+        1,
+        "all entries should have same run_id: {:?}",
+        run_ids
     );
 }

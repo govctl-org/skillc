@@ -1,12 +1,12 @@
 {
   "rfc_id": "RFC-0002",
   "title": "Gateway Protocol",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "status": "normative",
   "phase": "test",
   "owners": ["@govctl-org"],
   "created": "2026-01-26",
-  "updated": "2026-01-30",
+  "updated": "2026-01-31",
   "sections": [
     {
       "title": "Summary",
@@ -25,10 +25,20 @@
   ],
   "changelog": [
     {
+      "version": "0.2.1",
+      "date": "2026-01-31",
+      "notes": "Add missing --format support for `skc sources`"
+    },
+    {
+      "version": "0.2.0",
+      "date": "2026-01-31",
+      "notes": "C-SHOW updated with em-dash stripping and suggestions"
+    },
+    {
       "version": "0.1.0",
       "date": "2026-01-30",
-      "notes": "Initial release",
-      "added": ["C-SHOW updated with em-dash stripping and suggestions"]
+      "notes": "Initial release"
     }
-  ]
+  ],
+  "signature": "c4ece2d3b6365382b8594885e292500fc6633b49a20309f9a87bdb2047ab0866"
 }

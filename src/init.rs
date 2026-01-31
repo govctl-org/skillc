@@ -157,4 +157,16 @@ mod tests {
         assert_eq!(title_case("my-cool_skill"), "My Cool Skill");
         assert_eq!(title_case("CAPS"), "CAPS");
     }
+
+    #[test]
+    fn test_title_case_edge_cases() {
+        assert_eq!(title_case(""), "");
+        assert_eq!(title_case("-"), "");
+        assert_eq!(title_case("--"), "");
+        assert_eq!(title_case("a"), "A");
+        assert_eq!(title_case("a-b-c"), "A B C");
+    }
+
+    // Note: Integration tests for init command are in tests/integration_init.rs
+    // Unit tests here avoid changing current_dir which affects parallel tests
 }

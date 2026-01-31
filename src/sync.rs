@@ -380,4 +380,161 @@ mod tests {
         let skills = list_skills_in_logs_dir(&logs_dir);
         assert_eq!(skills, vec!["cuda", "go", "rust"]);
     }
+
+    #[test]
+    fn test_list_skills_in_logs_dir_nonexistent() {
+        let skills = list_skills_in_logs_dir(Path::new("/nonexistent/path"));
+        assert!(skills.is_empty());
+    }
+
+    #[test]
+    fn test_list_skills_ignores_dirs_without_logs_db() {
+        let temp = TempDir::new().expect("failed to create temp dir");
+        let logs_dir = temp.path().join("logs");
+
+        // Create skill dir without logs.db
+        let skill_dir = logs_dir.join("incomplete-skill").join(".skillc-meta");
+        fs::create_dir_all(&skill_dir).expect("failed to create skill dir");
+        // No logs.db file
+
+        // Create skill dir with logs.db
+        let valid_skill_dir = logs_dir.join("valid-skill").join(".skillc-meta");
+        fs::create_dir_all(&valid_skill_dir).expect("failed to create skill dir");
+        fs::write(valid_skill_dir.join("logs.db"), b"").expect("failed to write logs.db");
+
+        let skills = list_skills_in_logs_dir(&logs_dir);
+        assert_eq!(skills, vec!["valid-skill"]);
+    }
+
+    fn create_test_logs_db(path: &Path) -> Connection {
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        let conn = Connection::open(path).unwrap();
+        conn.execute(
+            "CREATE TABLE access_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp TEXT NOT NULL,
+                run_id TEXT NOT NULL,
+                command TEXT NOT NULL,
+                skill TEXT NOT NULL,
+                skill_path TEXT NOT NULL,
+                cwd TEXT NOT NULL,
+                args TEXT NOT NULL,
+                error TEXT
+            )",
+            [],
+        )
+        .unwrap();
+        conn
+    }
+
+    #[test]
+    fn test_read_log_entries_empty() {
+        let temp = TempDir::new().expect("failed to create temp dir");
+        let db_path = temp.path().join("logs.db");
+        let conn = create_test_logs_db(&db_path);
+
+        let entries = read_log_entries(&conn).unwrap();
+        assert!(entries.is_empty());
+    }
+
+    #[test]
+    fn test_read_log_entries_with_data() {
+        let temp = TempDir::new().expect("failed to create temp dir");
+        let db_path = temp.path().join("logs.db");
+        let conn = create_test_logs_db(&db_path);
+
+        conn.execute(
+            "INSERT INTO access_log (timestamp, run_id, command, skill, skill_path, cwd, args, error)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            rusqlite::params![
+                "2025-01-01T00:00:00Z",
+                "run-123",
+                "show",
+                "test-skill",
+                "/path/to/skill",
+                "/cwd",
+                "--section Foo",
+                None::<String>
+            ],
+        )
+        .unwrap();
+
+        let entries = read_log_entries(&conn).unwrap();
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].run_id, "run-123");
+        assert_eq!(entries[0].command, "show");
+    }
+
+    #[test]
+    fn test_entry_exists() {
+        let temp = TempDir::new().expect("failed to create temp dir");
+        let db_path = temp.path().join("logs.db");
+        let conn = create_test_logs_db(&db_path);
+
+        let entry = LogEntryRow {
+            timestamp: "2025-01-01T00:00:00Z".to_string(),
+            run_id: "run-123".to_string(),
+            command: "show".to_string(),
+            skill: "test-skill".to_string(),
+            skill_path: "/path/to/skill".to_string(),
+            cwd: "/cwd".to_string(),
+            args: "--section Foo".to_string(),
+            error: None,
+        };
+
+        // Entry doesn't exist yet
+        assert!(!entry_exists(&conn, &entry).unwrap());
+
+        // Insert entry
+        insert_entry(&conn, &entry).unwrap();
+
+        // Now it exists
+        assert!(entry_exists(&conn, &entry).unwrap());
+    }
+
+    #[test]
+    fn test_sync_skill_empty_db() {
+        let temp = TempDir::new().expect("failed to create temp dir");
+        let logs_dir = temp.path().join("logs");
+
+        // Create empty logs database
+        let skill_dir = logs_dir.join("test-skill").join(".skillc-meta");
+        create_test_logs_db(&skill_dir.join("logs.db"));
+
+        let result = sync_skill(&logs_dir, "test-skill", true).unwrap();
+        assert_eq!(result.skill, "test-skill");
+        assert_eq!(result.entries_synced, 0);
+        assert!(result.success); // Empty is success
+    }
+
+    #[test]
+    fn test_sync_skill_nonexistent() {
+        let temp = TempDir::new().expect("failed to create temp dir");
+        let logs_dir = temp.path().join("logs");
+        fs::create_dir_all(&logs_dir).unwrap();
+
+        let result = sync_skill(&logs_dir, "nonexistent", true).unwrap();
+        assert_eq!(result.entries_synced, 0);
+        assert!(result.success);
+    }
+
+    #[test]
+    fn test_purge_local_logs() {
+        let temp = TempDir::new().expect("failed to create temp dir");
+        let logs_dir = temp.path().join("logs");
+        let skill_dir = logs_dir.join("test-skill");
+        fs::create_dir_all(&skill_dir).unwrap();
+        fs::write(skill_dir.join("test.txt"), b"test").unwrap();
+
+        assert!(skill_dir.exists());
+        purge_local_logs(&logs_dir, "test-skill").unwrap();
+        assert!(!skill_dir.exists());
+    }
+
+    #[test]
+    fn test_purge_local_logs_nonexistent() {
+        let temp = TempDir::new().expect("failed to create temp dir");
+        // Should not error on nonexistent
+        purge_local_logs(temp.path(), "nonexistent").unwrap();
+    }
 }

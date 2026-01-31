@@ -203,6 +203,10 @@ enum Commands {
         /// Filter files by glob pattern (e.g., "*.md")
         #[arg(short, long)]
         pattern: Option<String>,
+
+        /// Output format
+        #[arg(short = 'o', long, value_enum, default_value = "text")]
+        format: OutputFormat,
     },
 
     /// Sync local logs to global runtime
@@ -556,6 +560,7 @@ fn run(cli: Cli) -> skillc::Result<()> {
             dir,
             limit,
             pattern,
+            format,
         } => {
             let output = skillc::sources(
                 &skill,
@@ -563,7 +568,7 @@ fn run(cli: Cli) -> skillc::Result<()> {
                 dir.as_deref(),
                 limit,
                 pattern.as_deref(),
-                OutputFormat::Text,
+                format,
             )?;
             println!("{}", output);
         }

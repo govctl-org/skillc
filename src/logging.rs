@@ -395,6 +395,61 @@ mod tests {
         assert!(meta_dir.join("logs.db").exists(), "db file should exist");
     }
 
+    #[test]
+    fn test_log_access_with_fallback_primary_success() {
+        let temp = TempDir::new().expect("create temp dir");
+        let runtime_dir = temp.path().join("runtime");
+        let conn = init_log_db(&runtime_dir).expect("create db");
+
+        let entry = LogEntry {
+            run_id: "test-fallback-run".to_string(),
+            command: "outline".to_string(),
+            skill: "test-skill".to_string(),
+            skill_path: "/path/to/skill".to_string(),
+            cwd: "/cwd".to_string(),
+            args: "{}".to_string(),
+            error: None,
+        };
+
+        // Should succeed with primary connection
+        log_access_with_fallback(Some(&conn), &entry);
+
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM access_log", [], |row| row.get(0))
+            .expect("count");
+        assert_eq!(count, 1, "entry should be logged to primary");
+    }
+
+    #[test]
+    fn test_log_access_with_fallback_no_connection() {
+        // When no connection provided, should try fallback (but won't crash)
+        let entry = LogEntry {
+            run_id: "no-conn-run".to_string(),
+            command: "show".to_string(),
+            skill: "test-skill".to_string(),
+            skill_path: "/path".to_string(),
+            cwd: "/cwd".to_string(),
+            args: "{}".to_string(),
+            error: None,
+        };
+
+        // Should not panic when no connection
+        log_access_with_fallback(None, &entry);
+    }
+
+    #[test]
+    fn test_get_fallback_log_dir() {
+        // Should return Some path based on current directory
+        let result = get_fallback_log_dir("test-skill");
+        assert!(result.is_some(), "should return a path");
+        let path = result.unwrap();
+        assert!(
+            path.to_string_lossy().contains("test-skill"),
+            "path should contain skill name: {}",
+            path.display()
+        );
+    }
+
     // Note: We don't test get_run_id with env var override here because
     // tests run in parallel and modifying env vars causes race conditions.
     // The env var logic is trivial and tested implicitly via integration tests.
