@@ -1,8 +1,8 @@
 //! File lint rules (SKL401) per [[RFC-0008:C-REGISTRY]]
 
-use super::markdown::ExtractedLink;
 use super::{Diagnostic, LintContext, LintResult, progress_bar};
 use crate::error::Result;
+use crate::markdown::ExtractedLink;
 use indicatif::ProgressIterator;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};

@@ -4,17 +4,15 @@ use crate::config::get_cwd;
 use crate::error::{Result, SkillcError};
 use crate::logging::{LogEntry, get_run_id, init_log_db, log_access_with_fallback};
 use crate::resolver::{ResolvedSkill, resolve_skill};
-use crate::{Heading, OutputFormat, verbose};
+use crate::{Heading, OutputFormat, markdown, verbose};
 use lazy_regex::{Lazy, Regex, lazy_regex};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 use walkdir::WalkDir;
 
-/// Regex for parsing markdown headings (validated at compile time).
-static HEADING_RE: Lazy<Regex> = lazy_regex!(r"^(#{1,6})\s+(.+)$");
-
 /// Regex for detecting heading lines (level only, validated at compile time).
+/// Used for section boundary detection in `show` command.
 static HEADING_LEVEL_RE: Lazy<Regex> = lazy_regex!(r"^(#{1,6})\s+");
 
 /// Execute the outline command per [[RFC-0002:C-OUTLINE]].
@@ -766,6 +764,8 @@ fn format_tree(skill_name: &str, entries: &[TreeEntry], limit: usize) -> String 
 }
 
 /// Extract headings from all .md files, sorted lexicographically by path.
+///
+/// Uses AST-based parsing to correctly skip headings inside code blocks.
 fn extract_headings(source_dir: &Path) -> Result<Vec<Heading>> {
     let mut headings = Vec::new();
 
@@ -791,25 +791,14 @@ fn extract_headings(source_dir: &Path) -> Result<Vec<Heading>> {
         let full_path = source_dir.join(&file);
         let content = fs::read_to_string(&full_path)?;
 
-        for (line_num, line) in content.lines().enumerate() {
-            if let Some(caps) = HEADING_RE.captures(line) {
-                let level = caps
-                    .get(1)
-                    .ok_or_else(|| SkillcError::Internal("regex group 1 missing".into()))?
-                    .as_str()
-                    .len();
-                let text = caps
-                    .get(2)
-                    .ok_or_else(|| SkillcError::Internal("regex group 2 missing".into()))?
-                    .as_str()
-                    .to_string();
-                headings.push(Heading {
-                    level,
-                    text,
-                    file: file.clone(),
-                    line_number: line_num + 1, // 1-indexed
-                });
-            }
+        // Use AST-based extraction to skip code blocks
+        for extracted in markdown::extract_headings(&content) {
+            headings.push(Heading {
+                level: extracted.level,
+                text: extracted.text,
+                file: file.clone(),
+                line_number: extracted.line,
+            });
         }
     }
 

@@ -1,6 +1,7 @@
-//! Structure lint rules (SKL201-SKL203) per [[RFC-0008:C-REGISTRY]]
+//! Structure lint rules (SKL201-SKL205) per [[RFC-0008:C-REGISTRY]]
 
 use super::{Diagnostic, LintResult};
+use crate::markdown::extract_headings;
 use lazy_regex::{Lazy, Regex, lazy_regex};
 use std::path::Path;
 
@@ -95,6 +96,62 @@ fn heading_matches_name(heading: &str, skill_name: &str) -> bool {
     let name_normalized = skill_name.to_lowercase().replace('-', " ");
 
     heading_normalized.contains(&name_normalized)
+}
+
+/// Lint heading hierarchy rules SKL204-SKL205 for a single file.
+///
+/// Per [[RFC-0008:C-REGISTRY]]:
+/// - SKL204: First heading should be H1
+/// - SKL205: Headings should not skip levels when going deeper
+pub fn lint_heading_hierarchy(
+    content: &str,
+    file_path: &Path,
+    skill_path: &Path,
+    result: &mut LintResult,
+) {
+    let relative_path = file_path.strip_prefix(skill_path).unwrap_or(file_path);
+    let headings = extract_headings(content);
+
+    if headings.is_empty() {
+        return;
+    }
+
+    // SKL204: heading-first-h1
+    let first = &headings[0];
+    if first.level != 1 {
+        result.add(
+            Diagnostic::warning(
+                "SKL204",
+                "heading-first-h1",
+                format!("first heading is H{}, expected H1", first.level),
+            )
+            .with_file(relative_path)
+            .with_line(first.line),
+        );
+    }
+
+    // SKL205: heading-hierarchy
+    let mut prev_level = 0;
+    for heading in &headings {
+        // Check for skipped levels when going deeper
+        if heading.level > prev_level + 1 && prev_level > 0 {
+            result.add(
+                Diagnostic::warning(
+                    "SKL205",
+                    "heading-hierarchy",
+                    format!(
+                        "heading skips from H{} to H{} (expected H{})",
+                        prev_level,
+                        heading.level,
+                        prev_level + 1
+                    ),
+                )
+                .with_file(relative_path)
+                .with_line(heading.line),
+            );
+        }
+        prev_level = heading.level;
+    }
 }
 
 #[cfg(test)]

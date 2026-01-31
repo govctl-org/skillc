@@ -1,8 +1,8 @@
 //! Link lint rules (SKL301-SKL303) per [[RFC-0008:C-REGISTRY]]
 
-use super::markdown::extract_headings;
 use super::{Diagnostic, LintContext, LintResult, progress_bar};
 use crate::error::Result;
+use crate::markdown::extract_headings;
 use indicatif::ParallelProgressIterator;
 use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
@@ -174,7 +174,8 @@ pub fn extract_heading_anchors(content: &str) -> HashSet<String> {
     let mut anchors = HashSet::new();
     let mut anchor_counts: HashMap<String, usize> = HashMap::new();
 
-    for (heading_text, _line) in extract_headings(content) {
+    for heading in extract_headings(content) {
+        let heading_text = heading.text;
         let slug = github_slug(&heading_text);
         let count = anchor_counts.entry(slug.clone()).or_insert(0);
         if *count == 0 {

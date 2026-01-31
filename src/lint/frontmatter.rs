@@ -2,8 +2,9 @@
 
 use super::{Diagnostic, LintResult};
 use crate::error::Result;
+use crate::frontmatter::{self, RawFrontmatter};
 use lazy_regex::{Lazy, Regex, lazy_regex};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::path::Path;
 
 /// Regex for validating skill name format per [[RFC-0008:C-REGISTRY]] SKL102
@@ -16,43 +17,10 @@ static TRIGGER_RE: Lazy<Regex> =
 /// Known frontmatter fields per [[RFC-0008:C-REGISTRY]] SKL109
 const KNOWN_FIELDS: &[&str] = &["name", "description", "allowed-tools"];
 
-/// Parse YAML frontmatter from SKILL.md content.
-///
-/// Returns (fields, valid_delimiters) where:
-/// - fields: HashMap of field name -> value
-/// - valid_delimiters: true if `---` delimiters are present and valid
-pub fn parse_frontmatter(content: &str) -> Result<(HashMap<String, String>, bool)> {
-    // Strip opening delimiter (try CRLF first, then LF)
-    let after_open = content
-        .strip_prefix("---\r\n")
-        .or_else(|| content.strip_prefix("---\n"));
-
-    let Some(after_open) = after_open else {
-        return Ok((HashMap::new(), false));
-    };
-
-    // Find closing delimiter
-    let Some(close_pos) = after_open.find("\n---") else {
-        return Ok((HashMap::new(), false));
-    };
-
-    let yaml_content = &after_open[..close_pos];
-
-    // Parse YAML (simple key: value parsing)
-    let mut fields = HashMap::new();
-    for line in yaml_content.lines() {
-        if let Some((key, value)) = line.split_once(':') {
-            let key = key.trim().to_string();
-            let value = value
-                .trim()
-                .trim_matches('"')
-                .trim_matches('\'')
-                .to_string();
-            fields.insert(key, value);
-        }
-    }
-
-    Ok((fields, true))
+/// Re-export for backward compatibility
+pub fn parse_frontmatter(content: &str) -> Result<(Option<RawFrontmatter>, bool)> {
+    let result = frontmatter::parse_lenient(content);
+    Ok((result.frontmatter, result.valid_delimiters))
 }
 
 /// Lint frontmatter rules SKL100-SKL109
@@ -64,10 +32,10 @@ pub fn lint_frontmatter(
     result: &mut LintResult,
 ) -> Result<()> {
     let relative_path = file_path.strip_prefix(skill_path).unwrap_or(file_path);
-    let (fields, valid_delimiters) = parse_frontmatter(content)?;
+    let parse_result = frontmatter::parse_lenient(content);
 
     // SKL100: frontmatter-valid
-    if !valid_delimiters {
+    if !parse_result.valid_delimiters {
         let msg = if !content.starts_with("---") {
             "missing frontmatter: file does not start with ---"
         } else {
@@ -82,16 +50,28 @@ pub fn lint_frontmatter(
         return Ok(());
     }
 
+    let Some(fm) = parse_result.frontmatter else {
+        result.add(
+            Diagnostic::error(
+                "SKL100",
+                "frontmatter-valid",
+                "failed to parse frontmatter YAML",
+            )
+            .with_file(relative_path)
+            .with_line(1),
+        );
+        return Ok(());
+    };
+
     // SKL101: name-required
-    let name = fields.get("name");
-    if name.is_none() {
+    if fm.name.is_none() {
         result.add(
             Diagnostic::error("SKL101", "name-required", "missing required field 'name'")
                 .with_file(relative_path),
         );
     }
 
-    if let Some(name_val) = name {
+    if let Some(ref name_val) = fm.name {
         // SKL102: name-format
         if !name_val.is_empty() && !NAME_FORMAT_RE.is_match(name_val) {
             result.add(
@@ -141,8 +121,7 @@ pub fn lint_frontmatter(
     }
 
     // SKL105: description-required
-    let description = fields.get("description");
-    if description.is_none() {
+    if fm.description.is_none() {
         result.add(
             Diagnostic::error(
                 "SKL105",
@@ -153,7 +132,7 @@ pub fn lint_frontmatter(
         );
     }
 
-    if let Some(desc_val) = description {
+    if let Some(ref desc_val) = fm.description {
         // SKL106: description-nonempty
         if desc_val.trim().is_empty() {
             result.add(
@@ -192,7 +171,7 @@ pub fn lint_frontmatter(
 
     // SKL109: frontmatter-known
     let known_set: HashSet<&str> = KNOWN_FIELDS.iter().copied().collect();
-    for key in fields.keys() {
+    for key in fm.extra.keys() {
         if !known_set.contains(key.as_str()) {
             result.add(
                 Diagnostic::warning(
@@ -221,24 +200,25 @@ description: "A skill"
 
 # Content
 "#;
-        let (fields, valid) = parse_frontmatter(content).expect("parse frontmatter");
-        assert!(valid);
-        assert_eq!(fields.get("name"), Some(&"my-skill".to_string()));
-        assert_eq!(fields.get("description"), Some(&"A skill".to_string()));
+        let result = frontmatter::parse_lenient(content);
+        assert!(result.valid_delimiters);
+        let fm = result.frontmatter.expect("should parse");
+        assert_eq!(fm.name, Some("my-skill".to_string()));
+        assert_eq!(fm.description, Some("A skill".to_string()));
     }
 
     #[test]
     fn test_parse_frontmatter_missing_open() {
         let content = "# No frontmatter";
-        let (_, valid) = parse_frontmatter(content).expect("parse frontmatter");
-        assert!(!valid);
+        let result = frontmatter::parse_lenient(content);
+        assert!(!result.valid_delimiters);
     }
 
     #[test]
     fn test_parse_frontmatter_missing_close() {
         let content = "---\nname: test\n# No close";
-        let (_, valid) = parse_frontmatter(content).expect("parse frontmatter");
-        assert!(!valid);
+        let result = frontmatter::parse_lenient(content);
+        assert!(!result.valid_delimiters);
     }
 
     #[test]

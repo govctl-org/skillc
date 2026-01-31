@@ -3,26 +3,17 @@
 use crate::Heading;
 use crate::config::ensure_dir;
 use crate::error::{Result, SkillcError};
+use crate::frontmatter::{self, Frontmatter};
+use crate::markdown;
 use crate::search;
 use crate::verbose;
 use chrono::Utc;
-use lazy_regex::{Lazy, Regex, lazy_regex};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 use walkdir::WalkDir;
-
-/// Regex for parsing markdown headings (validated at compile time).
-static HEADING_RE: Lazy<Regex> = lazy_regex!(r"^(#{1,6})\s+(.+)$");
-
-/// Frontmatter extracted from SKILL.md
-#[derive(Debug, Deserialize)]
-pub struct Frontmatter {
-    pub name: String,
-    pub description: String,
-}
 
 /// Build manifest per [[RFC-0001:C-MANIFEST]]
 #[derive(Debug, Serialize)]
@@ -47,9 +38,9 @@ pub fn compile(source_dir: &Path, runtime_dir: &Path) -> Result<()> {
     // Path safety: reject symlinks that escape skill root ([[RFC-0001:C-CONSTRAINTS]])
     check_symlink_safety(source_dir)?;
 
-    // Extract frontmatter
+    // Extract frontmatter using shared parser
     let skill_md_content = fs::read_to_string(&skill_md_path)?;
-    let frontmatter = extract_frontmatter(&skill_md_content)?;
+    let frontmatter = frontmatter::parse(&skill_md_content)?;
     verbose!("build: skill name=\"{}\"", frontmatter.name);
 
     // Extract headings from all .md files
@@ -98,79 +89,54 @@ pub fn compile(source_dir: &Path, runtime_dir: &Path) -> Result<()> {
     Ok(())
 }
 
-/// Extract YAML frontmatter from SKILL.md content
-fn extract_frontmatter(content: &str) -> Result<Frontmatter> {
-    let lines: Vec<&str> = content.lines().collect();
-
-    if lines.is_empty() || lines[0].trim() != "---" {
-        return Err(SkillcError::InvalidFrontmatter(
-            "File must start with ---".to_string(),
-        ));
-    }
-
-    // Find closing ---
-    let mut end_idx = None;
-    for (i, line) in lines.iter().enumerate().skip(1) {
-        if line.trim() == "---" {
-            end_idx = Some(i);
-            break;
-        }
-    }
-
-    let end_idx = end_idx
-        .ok_or_else(|| SkillcError::InvalidFrontmatter("No closing --- found".to_string()))?;
-
-    let yaml_content = lines[1..end_idx].join("\n");
-    let frontmatter: Frontmatter = serde_yaml::from_str(&yaml_content)?;
-
-    // E011 per [[RFC-0005:C-CODES]]
-    if frontmatter.name.is_empty() {
-        return Err(SkillcError::MissingFrontmatterField("name".to_string()));
-    }
-    if frontmatter.description.is_empty() {
-        return Err(SkillcError::MissingFrontmatterField(
-            "description".to_string(),
-        ));
-    }
-
-    Ok(frontmatter)
-}
-
-/// Extract headings from all .md files in the source directory
+/// Extract headings from all .md files in the source directory.
+///
+/// Uses pulldown-cmark AST to properly parse markdown, avoiding false
+/// positives from `#` characters inside code blocks.
+///
+/// Files are processed in deterministic order:
+/// 1. `SKILL.md` first (the main document)
+/// 2. Other `.md` files in alphabetical order by path
+///
+/// This ensures the compiled stub's "Top Sections" reflect the main skill
+/// content rather than arbitrary reference files.
 fn extract_headings(source_dir: &Path) -> Result<Vec<Heading>> {
-    let mut headings = Vec::new();
-
-    for entry in WalkDir::new(source_dir)
+    // Collect all .md files first
+    let mut md_files: Vec<PathBuf> = WalkDir::new(source_dir)
         .into_iter()
         .filter_map(|e| e.ok())
         .filter(|e| e.path().extension().is_some_and(|ext| ext == "md"))
-    {
-        let content = fs::read_to_string(entry.path())?;
-        let relative_path = entry
-            .path()
+        .map(|e| e.path().to_path_buf())
+        .collect();
+
+    // Sort: SKILL.md first, then alphabetically by path
+    md_files.sort_by(|a, b| {
+        let a_is_skill_md = a.file_name().is_some_and(|n| n == "SKILL.md");
+        let b_is_skill_md = b.file_name().is_some_and(|n| n == "SKILL.md");
+        match (a_is_skill_md, b_is_skill_md) {
+            (true, false) => std::cmp::Ordering::Less,
+            (false, true) => std::cmp::Ordering::Greater,
+            _ => a.cmp(b),
+        }
+    });
+
+    let mut headings = Vec::new();
+
+    for path in md_files {
+        let content = fs::read_to_string(&path)?;
+        let relative_path = path
             .strip_prefix(source_dir)
             .map_err(|_| SkillcError::Internal("path does not start with source_dir".into()))?
             .to_path_buf();
 
-        for (line_num, line) in content.lines().enumerate() {
-            if let Some(caps) = HEADING_RE.captures(line) {
-                let level = caps
-                    .get(1)
-                    .ok_or_else(|| SkillcError::Internal("regex group 1 missing".into()))?
-                    .as_str()
-                    .len();
-                let text = caps
-                    .get(2)
-                    .ok_or_else(|| SkillcError::Internal("regex group 2 missing".into()))?
-                    .as_str()
-                    .to_string();
-                headings.push(Heading {
-                    level,
-                    text,
-                    file: relative_path.clone(),
-                    line_number: line_num + 1, // 1-indexed
-                });
-            }
+        // Use AST-based heading extraction
+        for extracted in markdown::extract_headings(&content) {
+            headings.push(Heading {
+                level: extracted.level,
+                text: extracted.text,
+                file: relative_path.clone(),
+                line_number: extracted.line,
+            });
         }
     }
 
@@ -289,7 +255,135 @@ fn check_symlink_safety(source_dir: &Path) -> Result<()> {
 }
 
 /// Maximum stub size per [[RFC-0001:C-CONSTRAINTS]]
+/// Currently unused but retained for future enforcement.
+#[allow(dead_code)]
 const MAX_STUB_LINES: usize = 100;
+
+/// Maximum entries for SKILL.md sections per [[RFC-0001:C-SECTIONS]]
+const MAX_SKILL_SECTION_ENTRIES: usize = 15;
+
+/// Maximum entries for external references per [[RFC-0001:C-SECTIONS]]
+const MAX_REFERENCE_ENTRIES: usize = 15;
+
+/// A section entry for the stub per [[RFC-0001:C-SECTIONS]]
+#[derive(Debug)]
+struct SectionEntry {
+    /// Display text for the entry
+    text: String,
+    /// Indentation level (0 = no indent, 1 = one level, etc.)
+    indent: usize,
+}
+
+/// Build section entries per [[RFC-0001:C-SECTIONS]].
+///
+/// - SKILL.md: H1 at indent 0, H2 at indent 1, skip H3+ (max 10 entries)
+/// - Other files: Grouped under "References" with first H1 at indent 1 (max 5 entries)
+/// - "References" header only shown if there are external files
+/// - Truncated sections show "... (N more)" with exact omitted count
+fn build_section_entries(headings: &[Heading]) -> Vec<SectionEntry> {
+    let mut skill_entries = Vec::new();
+    let mut seen_files: std::collections::HashSet<PathBuf> = std::collections::HashSet::new();
+    let mut reference_entries = Vec::new();
+
+    // Process SKILL.md headings
+    for heading in headings {
+        let is_skill_md = heading.file.file_name().is_some_and(|n| n == "SKILL.md");
+
+        if is_skill_md {
+            // SKILL.md: H1 at indent 0, H2 at indent 1, skip H3+
+            match heading.level {
+                1 => skill_entries.push(SectionEntry {
+                    text: heading.text.clone(),
+                    indent: 0,
+                }),
+                2 => skill_entries.push(SectionEntry {
+                    text: heading.text.clone(),
+                    indent: 1,
+                }),
+                _ => {} // Skip H3+
+            }
+        }
+    }
+
+    // Process other files - collect first H1 from each
+    for heading in headings {
+        let is_skill_md = heading.file.file_name().is_some_and(|n| n == "SKILL.md");
+
+        if !is_skill_md {
+            if seen_files.contains(&heading.file) {
+                continue;
+            }
+
+            // Use first H1 heading
+            if heading.level == 1 {
+                seen_files.insert(heading.file.clone());
+                reference_entries.push(SectionEntry {
+                    text: heading.text.clone(),
+                    indent: 1,
+                });
+            }
+        }
+    }
+
+    // Add fallback entries for files without H1 headings
+    let files_with_headings: std::collections::HashSet<_> = headings
+        .iter()
+        .filter(|h| h.file.file_name().is_none_or(|n| n != "SKILL.md"))
+        .map(|h| &h.file)
+        .collect();
+
+    for file in files_with_headings {
+        if !seen_files.contains(file) {
+            // No H1 found, use filename
+            reference_entries.push(SectionEntry {
+                text: file.display().to_string(),
+                indent: 1,
+            });
+        }
+    }
+
+    // Calculate omitted counts before truncating
+    let skill_omitted = skill_entries
+        .len()
+        .saturating_sub(MAX_SKILL_SECTION_ENTRIES);
+    let refs_omitted = reference_entries
+        .len()
+        .saturating_sub(MAX_REFERENCE_ENTRIES);
+
+    // Apply limits
+    skill_entries.truncate(MAX_SKILL_SECTION_ENTRIES);
+    reference_entries.truncate(MAX_REFERENCE_ENTRIES);
+
+    // Build final entries
+    let mut entries = skill_entries;
+
+    // Add ellipsis with count for truncated SKILL.md sections
+    if skill_omitted > 0 {
+        entries.push(SectionEntry {
+            text: format!("... ({} more)", skill_omitted),
+            indent: 1,
+        });
+    }
+
+    // Add "References" section only if there are reference entries
+    if !reference_entries.is_empty() {
+        entries.push(SectionEntry {
+            text: "References".to_string(),
+            indent: 0,
+        });
+        entries.extend(reference_entries);
+
+        // Add ellipsis with count for truncated references
+        if refs_omitted > 0 {
+            entries.push(SectionEntry {
+                text: format!("... ({} more)", refs_omitted),
+                indent: 1,
+            });
+        }
+    }
+
+    entries
+}
 
 /// Generate the compiled stub per [[RFC-0001:C-STUB]]
 ///
@@ -310,7 +404,7 @@ fn generate_stub(frontmatter: &Frontmatter, headings: &[Heading]) -> String {
     stub.push_str("DO NOT read skill source files directly.\n");
     stub.push_str("Use the skillc gateway to access content.\n\n");
 
-    // MCP preference per [[RFC-0001:C-STUB]] (amended v0.3.0)
+    // MCP preference per [[RFC-0001:C-STUB]]
     stub.push_str("## Usage\n\n");
     stub.push_str("**Prefer MCP if available:** Use skillc MCP tools (`skc_outline`, `skc_show`, `skc_search`, etc.) for better performance and structured output.\n\n");
     stub.push_str("**CLI fallback:**\n");
@@ -335,27 +429,15 @@ fn generate_stub(frontmatter: &Frontmatter, headings: &[Heading]) -> String {
         frontmatter.name
     ));
 
-    // Calculate lines used so far (for 100-line limit)
-    let header_lines = stub.lines().count();
-    let available_lines = MAX_STUB_LINES.saturating_sub(header_lines + 3); // Reserve lines for section header and truncation indicator
+    // Build section entries per [[RFC-0001:C-SECTIONS]]
+    let entries = build_section_entries(headings);
 
-    // Top sections (limited to 12 per [[RFC-0001:C-CONSTRAINTS]], and fit within line limit)
+    // Top sections
     stub.push_str("## Top Sections\n\n");
-    let top_headings: Vec<_> = headings.iter().filter(|h| h.level <= 2).take(12).collect();
 
-    let mut sections_added = 0;
-    for heading in &top_headings {
-        if sections_added >= available_lines {
-            break;
-        }
-        let indent = "  ".repeat(heading.level.saturating_sub(1));
-        stub.push_str(&format!("{}- {}\n", indent, heading.text));
-        sections_added += 1;
-    }
-
-    let total_top_sections = headings.iter().filter(|h| h.level <= 2).count();
-    if total_top_sections > sections_added || total_top_sections > 12 {
-        stub.push_str("- ... (more sections available, use `skc outline`)\n");
+    for entry in &entries {
+        let indent = "  ".repeat(entry.indent);
+        stub.push_str(&format!("{}- {}\n", indent, entry.text));
     }
 
     stub
@@ -366,7 +448,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_extract_frontmatter() {
+    fn test_frontmatter_parsing() {
         let content = r#"---
 name: test-skill
 description: A test skill
@@ -374,8 +456,290 @@ description: A test skill
 
 # Content here
 "#;
-        let fm = extract_frontmatter(content).expect("failed to extract frontmatter");
+        let fm = frontmatter::parse(content).expect("failed to parse frontmatter");
         assert_eq!(fm.name, "test-skill");
         assert_eq!(fm.description, "A test skill");
+    }
+
+    #[test]
+    fn test_build_section_entries_skill_md_only() {
+        let headings = vec![
+            Heading {
+                level: 1,
+                text: "My Skill".to_string(),
+                file: PathBuf::from("SKILL.md"),
+                line_number: 1,
+            },
+            Heading {
+                level: 2,
+                text: "Section One".to_string(),
+                file: PathBuf::from("SKILL.md"),
+                line_number: 5,
+            },
+            Heading {
+                level: 2,
+                text: "Section Two".to_string(),
+                file: PathBuf::from("SKILL.md"),
+                line_number: 10,
+            },
+        ];
+
+        let entries = build_section_entries(&headings);
+
+        assert_eq!(entries.len(), 3);
+        assert_eq!(entries[0].text, "My Skill");
+        assert_eq!(entries[0].indent, 0);
+        assert_eq!(entries[1].text, "Section One");
+        assert_eq!(entries[1].indent, 1);
+        assert_eq!(entries[2].text, "Section Two");
+        assert_eq!(entries[2].indent, 1);
+    }
+
+    #[test]
+    fn test_build_section_entries_skips_h3_plus() {
+        let headings = vec![
+            Heading {
+                level: 1,
+                text: "My Skill".to_string(),
+                file: PathBuf::from("SKILL.md"),
+                line_number: 1,
+            },
+            Heading {
+                level: 2,
+                text: "Section".to_string(),
+                file: PathBuf::from("SKILL.md"),
+                line_number: 5,
+            },
+            Heading {
+                level: 3,
+                text: "Subsection".to_string(),
+                file: PathBuf::from("SKILL.md"),
+                line_number: 10,
+            },
+            Heading {
+                level: 4,
+                text: "Deep".to_string(),
+                file: PathBuf::from("SKILL.md"),
+                line_number: 15,
+            },
+        ];
+
+        let entries = build_section_entries(&headings);
+
+        // Only H1 and H2 should be included
+        assert_eq!(entries.len(), 2);
+        assert_eq!(entries[0].text, "My Skill");
+        assert_eq!(entries[1].text, "Section");
+    }
+
+    #[test]
+    fn test_build_section_entries_with_references() {
+        let headings = vec![
+            Heading {
+                level: 1,
+                text: "My Skill".to_string(),
+                file: PathBuf::from("SKILL.md"),
+                line_number: 1,
+            },
+            Heading {
+                level: 1,
+                text: "Reference Doc".to_string(),
+                file: PathBuf::from("docs/reference.md"),
+                line_number: 1,
+            },
+            Heading {
+                level: 1,
+                text: "Another Doc".to_string(),
+                file: PathBuf::from("docs/another.md"),
+                line_number: 1,
+            },
+        ];
+
+        let entries = build_section_entries(&headings);
+
+        // My Skill + References header + 2 reference entries
+        assert_eq!(entries.len(), 4);
+        assert_eq!(entries[0].text, "My Skill");
+        assert_eq!(entries[0].indent, 0);
+        assert_eq!(entries[1].text, "References");
+        assert_eq!(entries[1].indent, 0);
+        assert_eq!(entries[2].text, "Reference Doc");
+        assert_eq!(entries[2].indent, 1);
+        assert_eq!(entries[3].text, "Another Doc");
+        assert_eq!(entries[3].indent, 1);
+    }
+
+    #[test]
+    fn test_build_section_entries_no_references_when_empty() {
+        let headings = vec![Heading {
+            level: 1,
+            text: "My Skill".to_string(),
+            file: PathBuf::from("SKILL.md"),
+            line_number: 1,
+        }];
+
+        let entries = build_section_entries(&headings);
+
+        // No "References" section when there are no other files
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].text, "My Skill");
+    }
+
+    #[test]
+    fn test_build_section_entries_uses_first_h1_from_other_files() {
+        let headings = vec![
+            Heading {
+                level: 1,
+                text: "My Skill".to_string(),
+                file: PathBuf::from("SKILL.md"),
+                line_number: 1,
+            },
+            Heading {
+                level: 1,
+                text: "First H1".to_string(),
+                file: PathBuf::from("docs/multi.md"),
+                line_number: 1,
+            },
+            Heading {
+                level: 1,
+                text: "Second H1".to_string(),
+                file: PathBuf::from("docs/multi.md"),
+                line_number: 10,
+            },
+            Heading {
+                level: 2,
+                text: "Some H2".to_string(),
+                file: PathBuf::from("docs/multi.md"),
+                line_number: 20,
+            },
+        ];
+
+        let entries = build_section_entries(&headings);
+
+        // Only first H1 from docs/multi.md should be included
+        assert_eq!(entries.len(), 3);
+        assert_eq!(entries[0].text, "My Skill");
+        assert_eq!(entries[1].text, "References");
+        assert_eq!(entries[2].text, "First H1");
+    }
+
+    #[test]
+    fn test_build_section_entries_truncation_with_count() {
+        // Create more than MAX_SKILL_SECTION_ENTRIES (15) headings: 1 H1 + 19 H2 = 20 entries
+        let mut headings: Vec<Heading> = (0..20)
+            .map(|i| Heading {
+                level: if i == 0 { 1 } else { 2 },
+                text: format!("Section {}", i),
+                file: PathBuf::from("SKILL.md"),
+                line_number: i + 1,
+            })
+            .collect();
+
+        // Add reference files exceeding MAX_REFERENCE_ENTRIES (15): 20 files
+        for i in 0..20 {
+            headings.push(Heading {
+                level: 1,
+                text: format!("Ref {}", i),
+                file: PathBuf::from(format!("refs/ref{}.md", i)),
+                line_number: 1,
+            });
+        }
+
+        let entries = build_section_entries(&headings);
+
+        // Check for SKILL.md truncation indicator (20 - 15 = 5 more)
+        let skill_ellipsis = entries
+            .iter()
+            .find(|e| e.text.starts_with("... (") && e.text.contains("5 more"));
+        assert!(
+            skill_ellipsis.is_some(),
+            "Should have ellipsis showing 5 more for SKILL.md sections"
+        );
+
+        // Check for References section
+        assert!(
+            entries.iter().any(|e| e.text == "References"),
+            "Should have References section"
+        );
+
+        // Check for References truncation indicator (20 - 15 = 5 more)
+        let refs_ellipsis = entries
+            .iter()
+            .find(|e| e.text.starts_with("... (") && e.text.contains("5 more"));
+        assert!(
+            refs_ellipsis.is_some(),
+            "Should have ellipsis showing 5 more for References"
+        );
+    }
+
+    #[test]
+    fn test_build_section_entries_multiple_h1_in_skill_md() {
+        let headings = vec![
+            Heading {
+                level: 1,
+                text: "Main Title".to_string(),
+                file: PathBuf::from("SKILL.md"),
+                line_number: 1,
+            },
+            Heading {
+                level: 2,
+                text: "Subsection".to_string(),
+                file: PathBuf::from("SKILL.md"),
+                line_number: 5,
+            },
+            Heading {
+                level: 1,
+                text: "Second Title".to_string(),
+                file: PathBuf::from("SKILL.md"),
+                line_number: 10,
+            },
+            Heading {
+                level: 2,
+                text: "Another Sub".to_string(),
+                file: PathBuf::from("SKILL.md"),
+                line_number: 15,
+            },
+        ];
+
+        let entries = build_section_entries(&headings);
+
+        // All H1s and H2s from SKILL.md should be included
+        assert_eq!(entries.len(), 4);
+        assert_eq!(entries[0].text, "Main Title");
+        assert_eq!(entries[0].indent, 0);
+        assert_eq!(entries[1].text, "Subsection");
+        assert_eq!(entries[1].indent, 1);
+        assert_eq!(entries[2].text, "Second Title");
+        assert_eq!(entries[2].indent, 0);
+        assert_eq!(entries[3].text, "Another Sub");
+        assert_eq!(entries[3].indent, 1);
+    }
+
+    #[test]
+    fn test_build_section_entries_fallback_to_filename() {
+        let headings = vec![
+            Heading {
+                level: 1,
+                text: "My Skill".to_string(),
+                file: PathBuf::from("SKILL.md"),
+                line_number: 1,
+            },
+            // File with only H2, no H1
+            Heading {
+                level: 2,
+                text: "Some H2".to_string(),
+                file: PathBuf::from("docs/no-h1.md"),
+                line_number: 1,
+            },
+        ];
+
+        let entries = build_section_entries(&headings);
+
+        // Should fallback to filename for docs/no-h1.md
+        assert_eq!(entries.len(), 3);
+        assert_eq!(entries[0].text, "My Skill");
+        assert_eq!(entries[1].text, "References");
+        assert_eq!(entries[2].text, "docs/no-h1.md");
+        assert_eq!(entries[2].indent, 1);
     }
 }

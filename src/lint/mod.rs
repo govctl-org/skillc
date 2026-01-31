@@ -13,13 +13,12 @@
 mod files;
 mod frontmatter;
 mod links;
-mod markdown;
 mod structure;
 
 use crate::error::Result;
+use crate::markdown::ExtractedLink;
 use crate::verbose;
 use indicatif::{ParallelProgressIterator, ProgressBar, ProgressStyle};
-use markdown::ExtractedLink;
 use rayon::prelude::*;
 use serde::Serialize;
 use std::collections::HashMap;
@@ -86,7 +85,7 @@ impl LintContext {
             .progress_with(pb)
             .filter_map(|file_path| {
                 fs::read_to_string(file_path).ok().map(|content| {
-                    let links = markdown::extract_links(&content);
+                    let links = crate::markdown::extract_links(&content);
                     let key = file_path
                         .canonicalize()
                         .unwrap_or_else(|_| file_path.clone());
@@ -322,7 +321,7 @@ pub fn lint(skill_path: &Path, options: LintOptions) -> Result<LintResult> {
         &mut result,
     )?;
 
-    // Run structure rules (SKL201-SKL203)
+    // Run structure rules (SKL201-SKL203) for SKILL.md
     structure::lint_structure(
         &skill_md_content,
         &skill_md_path,
@@ -333,6 +332,13 @@ pub fn lint(skill_path: &Path, options: LintOptions) -> Result<LintResult> {
 
     // Build shared context (collects and parses all files in parallel)
     let ctx = LintContext::new(skill_path)?;
+
+    // Run heading hierarchy rules (SKL204-SKL205) for all markdown files
+    for file_path in &ctx.md_files {
+        if let Some(cached) = ctx.get(file_path) {
+            structure::lint_heading_hierarchy(&cached.content, file_path, skill_path, &mut result);
+        }
+    }
 
     // Run link rules (SKL301-SKL303) with parallel checking
     links::lint_links(skill_path, &ctx, &mut result)?;

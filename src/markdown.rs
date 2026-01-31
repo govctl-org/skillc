@@ -1,11 +1,35 @@
-//! Markdown parsing utilities using pulldown-cmark AST
+//! Markdown parsing utilities using pulldown-cmark AST.
 //!
-//! This module provides proper markdown structure awareness for linting,
-//! avoiding false positives from links inside code blocks or inline code.
+//! This module provides proper markdown structure awareness, avoiding
+//! false positives from content inside code blocks or inline code.
 
 use pulldown_cmark::{Event, Options, Parser, Tag, TagEnd};
 
-/// Represents a link extracted from markdown content
+/// Strip YAML frontmatter from markdown content.
+///
+/// Returns the content after the closing `---` delimiter, or the original
+/// content if no valid frontmatter is present.
+fn strip_frontmatter(content: &str) -> &str {
+    // Check for opening delimiter
+    let after_open = content
+        .strip_prefix("---\r\n")
+        .or_else(|| content.strip_prefix("---\n"));
+
+    let Some(after_open) = after_open else {
+        return content;
+    };
+
+    // Find closing delimiter
+    if let Some(close_pos) = after_open.find("\n---") {
+        // Return content after the closing delimiter and its newline
+        let after_close = &after_open[close_pos + 4..];
+        after_close.strip_prefix('\n').unwrap_or(after_close)
+    } else {
+        content
+    }
+}
+
+/// Represents a link extracted from markdown content.
 #[derive(Debug, Clone)]
 pub struct ExtractedLink {
     /// The link destination (URL or path)
@@ -67,33 +91,59 @@ pub fn extract_links(content: &str) -> Vec<ExtractedLink> {
     links
 }
 
-/// Extract headings from markdown content for anchor validation.
+/// Represents a heading extracted from markdown content.
+#[derive(Debug, Clone)]
+pub struct ExtractedHeading {
+    /// Heading level (1-6)
+    pub level: usize,
+    /// Heading text content
+    pub text: String,
+    /// Line number (1-indexed)
+    pub line: usize,
+}
+
+/// Extract headings from markdown content using AST parsing.
 ///
-/// Returns heading text and line number for each heading found.
-pub fn extract_headings(content: &str) -> Vec<(String, usize)> {
+/// Uses pulldown-cmark to properly parse markdown structure, avoiding
+/// false positives from `#` characters inside code blocks.
+///
+/// Automatically strips YAML frontmatter before parsing.
+pub fn extract_headings(content: &str) -> Vec<ExtractedHeading> {
+    // Strip frontmatter to avoid parsing YAML as markdown
+    let body = strip_frontmatter(content);
+    // Calculate line offset from stripped frontmatter
+    let frontmatter_lines = content.len() - body.len();
+    let line_offset = content[..frontmatter_lines].matches('\n').count();
+
     let mut headings = Vec::new();
     let mut in_heading = false;
     let mut current_heading = String::new();
     let mut heading_line = 0;
+    let mut heading_level = 0;
 
     let mut options = Options::empty();
     options.insert(Options::ENABLE_TABLES);
 
-    let parser = Parser::new_ext(content, options);
+    let parser = Parser::new_ext(body, options);
 
     for (event, range) in parser.into_offset_iter() {
-        let line = content[..range.start].matches('\n').count() + 1;
+        let line = body[..range.start].matches('\n').count() + 1 + line_offset;
 
         match event {
-            Event::Start(Tag::Heading { .. }) => {
+            Event::Start(Tag::Heading { level, .. }) => {
                 in_heading = true;
                 current_heading.clear();
                 heading_line = line;
+                heading_level = level as usize;
             }
             Event::End(TagEnd::Heading(_)) => {
                 in_heading = false;
                 if !current_heading.is_empty() {
-                    headings.push((current_heading.clone(), heading_line));
+                    headings.push(ExtractedHeading {
+                        level: heading_level,
+                        text: current_heading.clone(),
+                        line: heading_line,
+                    });
                 }
             }
             Event::Text(text) | Event::Code(text) if in_heading => {
@@ -188,8 +238,47 @@ mod tests {
         let content = "# First\n## Second\n### Third\n";
         let headings = extract_headings(content);
         assert_eq!(headings.len(), 3);
-        assert_eq!(headings[0].0, "First");
-        assert_eq!(headings[1].0, "Second");
-        assert_eq!(headings[2].0, "Third");
+        assert_eq!(headings[0].text, "First");
+        assert_eq!(headings[0].level, 1);
+        assert_eq!(headings[1].text, "Second");
+        assert_eq!(headings[1].level, 2);
+        assert_eq!(headings[2].text, "Third");
+        assert_eq!(headings[2].level, 3);
+    }
+
+    #[test]
+    fn test_extract_headings_skips_code_block() {
+        let content = r#"# Real Heading
+
+```bash
+# This is a comment, not a heading
+echo "hello"
+```
+
+## Another Real Heading
+"#;
+        let headings = extract_headings(content);
+        assert_eq!(headings.len(), 2);
+        assert_eq!(headings[0].text, "Real Heading");
+        assert_eq!(headings[1].text, "Another Real Heading");
+    }
+
+    #[test]
+    fn test_extract_headings_skips_frontmatter() {
+        let content = r#"---
+name: my-skill
+description: "A skill"
+---
+
+# Main Heading
+
+## Sub Heading
+"#;
+        let headings = extract_headings(content);
+        assert_eq!(headings.len(), 2);
+        assert_eq!(headings[0].text, "Main Heading");
+        assert_eq!(headings[0].level, 1);
+        assert_eq!(headings[1].text, "Sub Heading");
+        assert_eq!(headings[1].level, 2);
     }
 }

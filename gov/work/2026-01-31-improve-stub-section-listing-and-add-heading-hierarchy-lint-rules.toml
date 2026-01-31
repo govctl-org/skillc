@@ -1,0 +1,36 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-31-003"
+title = "Improve stub section listing and add heading hierarchy lint rules"
+status = "active"
+created = "2026-01-31"
+started = "2026-01-31"
+refs = [
+    "RFC-0001",
+    "RFC-0008",
+]
+
+[content]
+description = """
+Describe the work to be done.
+What is the goal? What are the acceptance criteria?"""
+
+[[content.acceptance_criteria]]
+text = "Stub section listing per [[RFC-0001:C-SECTIONS]] - SKILL.md shows H2+ only, other files show H1/filename"
+status = "pending"
+category = "changed"
+
+[[content.acceptance_criteria]]
+text = "SKL204 heading-first-h1 lint rule per [[RFC-0008:C-REGISTRY]]"
+status = "pending"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "SKL205 heading-hierarchy lint rule per [[RFC-0008:C-REGISTRY]]"
+status = "pending"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "All tests pass"
+status = "pending"
+category = "chore"
