@@ -4,25 +4,32 @@
   "version": "0.2.0",
   "status": "normative",
   "phase": "test",
-  "owners": ["@govctl-org"],
+  "owners": [
+    "@govctl-org"
+  ],
   "created": "2026-01-29",
   "updated": "2026-01-31",
   "sections": [
     {
       "title": "Summary",
-      "clauses": ["clauses/C-OVERVIEW.json"]
+      "clauses": [
+        "clauses/C-OVERVIEW.json"
+      ]
     },
     {
       "title": "Specification",
       "clauses": [
         "clauses/C-REGISTRY.json",
         "clauses/C-SCOPE.json",
-        "clauses/C-DIAGNOSTICS.json"
+        "clauses/C-DIAGNOSTICS.json",
+        "clauses/C-REFERENCE-FRONTMATTER.json"
       ]
     },
     {
       "title": "Extensions",
-      "clauses": ["clauses/C-EXTENSIONS.json"]
+      "clauses": [
+        "clauses/C-EXTENSIONS.json"
+      ]
     }
   ],
   "changelog": [

@@ -12,8 +12,7 @@ refs = [
 
 [content]
 description = """
-Describe the work to be done.
-What is the goal? What are the acceptance criteria?"""
+Improve the stub section listing to show more entries and add a lint rule for heading hierarchy."""
 
 [[content.acceptance_criteria]]
 text = "Stub section listing per [[RFC-0001:C-SECTIONS]] - SKILL.md shows H2+ only, other files show H1/filename"

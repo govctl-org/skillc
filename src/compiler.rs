@@ -10,6 +10,7 @@ use crate::verbose;
 use chrono::Utc;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
+use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
@@ -51,12 +52,19 @@ pub fn compile(source_dir: &Path, runtime_dir: &Path) -> Result<()> {
     let md_files = list_md_files(source_dir)?;
     verbose!("build: found {} markdown files", md_files.len());
 
+    // Extract reference descriptions per [[RFC-0008:C-REFERENCE-FRONTMATTER]]
+    let descriptions = extract_reference_descriptions(source_dir, &md_files);
+    verbose!(
+        "build: found {} reference descriptions",
+        descriptions.len()
+    );
+
     // Compute source hash
     let source_hash = compute_source_hash(source_dir)?;
     verbose!("build: source_hash={}", &source_hash[..16]);
 
     // Generate stub
-    let stub = generate_stub(&frontmatter, &headings);
+    let stub = generate_stub(&frontmatter, &headings, &descriptions);
 
     // Generate manifest
     let manifest = Manifest {
@@ -265,6 +273,9 @@ const MAX_SKILL_SECTION_ENTRIES: usize = 15;
 /// Maximum entries for external references per [[RFC-0001:C-SECTIONS]]
 const MAX_REFERENCE_ENTRIES: usize = 15;
 
+/// Maximum length for reference descriptions per [[RFC-0001:C-SECTIONS]]
+const MAX_REFERENCE_DESCRIPTION_LEN: usize = 120;
+
 /// A section entry for the stub per [[RFC-0001:C-SECTIONS]]
 #[derive(Debug)]
 struct SectionEntry {
@@ -274,13 +285,90 @@ struct SectionEntry {
     indent: usize,
 }
 
+/// Extract optional description from reference file frontmatter per [[RFC-0008:C-REFERENCE-FRONTMATTER]].
+///
+/// Returns a map of relative file paths to their descriptions.
+fn extract_reference_descriptions(
+    source_dir: &Path,
+    files: &[PathBuf],
+) -> HashMap<PathBuf, String> {
+    let mut descriptions = HashMap::new();
+
+    for file in files {
+        // Skip SKILL.md - it uses the main frontmatter
+        if file.file_name().is_some_and(|n| n == "SKILL.md") {
+            continue;
+        }
+
+        let full_path = source_dir.join(file);
+        if let Ok(content) = fs::read_to_string(&full_path) {
+            if let Some(desc) = extract_description_from_frontmatter(&content) {
+                descriptions.insert(file.clone(), desc);
+            }
+        }
+    }
+
+    descriptions
+}
+
+/// Extract description field from optional frontmatter.
+///
+/// Returns None if no frontmatter or no description field.
+fn extract_description_from_frontmatter(content: &str) -> Option<String> {
+    // Check for frontmatter delimiters
+    if !content.starts_with("---") {
+        return None;
+    }
+
+    // Find the closing delimiter
+    let rest = &content[3..];
+    let close_pos = rest.find("\n---")?;
+    let yaml_block = &rest[..close_pos].trim();
+
+    // Parse YAML to extract description
+    // Use a simple approach: look for "description:" line
+    for line in yaml_block.lines() {
+        let line = line.trim();
+        if line.starts_with("description:") {
+            let value = line.strip_prefix("description:")?.trim();
+            // Handle quoted strings
+            let desc = if (value.starts_with('"') && value.ends_with('"'))
+                || (value.starts_with('\'') && value.ends_with('\''))
+            {
+                &value[1..value.len() - 1]
+            } else {
+                value
+            };
+            if !desc.is_empty() {
+                return Some(desc.to_string());
+            }
+        }
+    }
+
+    None
+}
+
+/// Truncate description to max length with ellipsis per [[RFC-0001:C-SECTIONS]].
+fn truncate_description(desc: &str, max_len: usize) -> String {
+    if desc.chars().count() <= max_len {
+        desc.to_string()
+    } else {
+        let truncated: String = desc.chars().take(max_len - 1).collect();
+        format!("{}…", truncated.trim_end())
+    }
+}
+
 /// Build section entries per [[RFC-0001:C-SECTIONS]].
 ///
-/// - SKILL.md: H1 at indent 0, H2 at indent 1, skip H3+ (max 10 entries)
-/// - Other files: Grouped under "References" with first H1 at indent 1 (max 5 entries)
+/// - SKILL.md: H1 at indent 0, H2 at indent 1, skip H3+ (max 15 entries)
+/// - Other files: Grouped under "References" with first H1 at indent 1 (max 15 entries)
+/// - Reference entries include optional description per [[RFC-0008:C-REFERENCE-FRONTMATTER]]
 /// - "References" header only shown if there are external files
 /// - Truncated sections show "... (N more)" with exact omitted count
-fn build_section_entries(headings: &[Heading]) -> Vec<SectionEntry> {
+fn build_section_entries(
+    headings: &[Heading],
+    descriptions: &HashMap<PathBuf, String>,
+) -> Vec<SectionEntry> {
     let mut skill_entries = Vec::new();
     let mut seen_files: std::collections::HashSet<PathBuf> = std::collections::HashSet::new();
     let mut reference_entries = Vec::new();
@@ -317,10 +405,16 @@ fn build_section_entries(headings: &[Heading]) -> Vec<SectionEntry> {
             // Use first H1 heading
             if heading.level == 1 {
                 seen_files.insert(heading.file.clone());
-                reference_entries.push(SectionEntry {
-                    text: heading.text.clone(),
-                    indent: 1,
-                });
+
+                // Build entry text with optional description per [[RFC-0001:C-SECTIONS]]
+                let text = if let Some(desc) = descriptions.get(&heading.file) {
+                    let truncated = truncate_description(desc, MAX_REFERENCE_DESCRIPTION_LEN);
+                    format!("{} — {}", heading.text, truncated)
+                } else {
+                    heading.text.clone()
+                };
+
+                reference_entries.push(SectionEntry { text, indent: 1 });
             }
         }
     }
@@ -334,11 +428,14 @@ fn build_section_entries(headings: &[Heading]) -> Vec<SectionEntry> {
 
     for file in files_with_headings {
         if !seen_files.contains(file) {
-            // No H1 found, use filename
-            reference_entries.push(SectionEntry {
-                text: file.display().to_string(),
-                indent: 1,
-            });
+            // No H1 found, use filename (with optional description)
+            let text = if let Some(desc) = descriptions.get(file) {
+                let truncated = truncate_description(desc, MAX_REFERENCE_DESCRIPTION_LEN);
+                format!("{} — {}", file.display(), truncated)
+            } else {
+                file.display().to_string()
+            };
+            reference_entries.push(SectionEntry { text, indent: 1 });
         }
     }
 
@@ -388,7 +485,11 @@ fn build_section_entries(headings: &[Heading]) -> Vec<SectionEntry> {
 /// Generate the compiled stub per [[RFC-0001:C-STUB]]
 ///
 /// Enforces the 100-line limit per [[RFC-0001:C-CONSTRAINTS]].
-fn generate_stub(frontmatter: &Frontmatter, headings: &[Heading]) -> String {
+fn generate_stub(
+    frontmatter: &Frontmatter,
+    headings: &[Heading],
+    descriptions: &HashMap<PathBuf, String>,
+) -> String {
     let mut stub = String::new();
 
     // Frontmatter
@@ -430,7 +531,7 @@ fn generate_stub(frontmatter: &Frontmatter, headings: &[Heading]) -> String {
     ));
 
     // Build section entries per [[RFC-0001:C-SECTIONS]]
-    let entries = build_section_entries(headings);
+    let entries = build_section_entries(headings, descriptions);
 
     // Top sections
     stub.push_str("## Top Sections\n\n");
@@ -484,7 +585,7 @@ description: A test skill
             },
         ];
 
-        let entries = build_section_entries(&headings);
+        let entries = build_section_entries(&headings, &HashMap::new());
 
         assert_eq!(entries.len(), 3);
         assert_eq!(entries[0].text, "My Skill");
@@ -524,7 +625,7 @@ description: A test skill
             },
         ];
 
-        let entries = build_section_entries(&headings);
+        let entries = build_section_entries(&headings, &HashMap::new());
 
         // Only H1 and H2 should be included
         assert_eq!(entries.len(), 2);
@@ -555,7 +656,7 @@ description: A test skill
             },
         ];
 
-        let entries = build_section_entries(&headings);
+        let entries = build_section_entries(&headings, &HashMap::new());
 
         // My Skill + References header + 2 reference entries
         assert_eq!(entries.len(), 4);
@@ -578,7 +679,7 @@ description: A test skill
             line_number: 1,
         }];
 
-        let entries = build_section_entries(&headings);
+        let entries = build_section_entries(&headings, &HashMap::new());
 
         // No "References" section when there are no other files
         assert_eq!(entries.len(), 1);
@@ -614,7 +715,7 @@ description: A test skill
             },
         ];
 
-        let entries = build_section_entries(&headings);
+        let entries = build_section_entries(&headings, &HashMap::new());
 
         // Only first H1 from docs/multi.md should be included
         assert_eq!(entries.len(), 3);
@@ -645,7 +746,7 @@ description: A test skill
             });
         }
 
-        let entries = build_section_entries(&headings);
+        let entries = build_section_entries(&headings, &HashMap::new());
 
         // Check for SKILL.md truncation indicator (20 - 15 = 5 more)
         let skill_ellipsis = entries
@@ -701,7 +802,7 @@ description: A test skill
             },
         ];
 
-        let entries = build_section_entries(&headings);
+        let entries = build_section_entries(&headings, &HashMap::new());
 
         // All H1s and H2s from SKILL.md should be included
         assert_eq!(entries.len(), 4);
@@ -733,7 +834,7 @@ description: A test skill
             },
         ];
 
-        let entries = build_section_entries(&headings);
+        let entries = build_section_entries(&headings, &HashMap::new());
 
         // Should fallback to filename for docs/no-h1.md
         assert_eq!(entries.len(), 3);
@@ -741,5 +842,108 @@ description: A test skill
         assert_eq!(entries[1].text, "References");
         assert_eq!(entries[2].text, "docs/no-h1.md");
         assert_eq!(entries[2].indent, 1);
+    }
+
+    #[test]
+    fn test_extract_description_from_frontmatter() {
+        // With description
+        let content = r#"---
+description: "Test description"
+---
+
+# Title
+"#;
+        let desc = extract_description_from_frontmatter(content);
+        assert_eq!(desc, Some("Test description".to_string()));
+
+        // Without frontmatter
+        let content = "# Title\n\nContent";
+        let desc = extract_description_from_frontmatter(content);
+        assert_eq!(desc, None);
+
+        // With frontmatter but no description
+        let content = r#"---
+other: value
+---
+
+# Title
+"#;
+        let desc = extract_description_from_frontmatter(content);
+        assert_eq!(desc, None);
+
+        // With single-quoted description
+        let content = r#"---
+description: 'Single quoted'
+---
+"#;
+        let desc = extract_description_from_frontmatter(content);
+        assert_eq!(desc, Some("Single quoted".to_string()));
+
+        // With unquoted description
+        let content = r#"---
+description: Unquoted value
+---
+"#;
+        let desc = extract_description_from_frontmatter(content);
+        assert_eq!(desc, Some("Unquoted value".to_string()));
+    }
+
+    #[test]
+    fn test_truncate_description() {
+        // Short description - no truncation
+        let desc = "Short description";
+        assert_eq!(truncate_description(desc, 120), "Short description");
+
+        // Exactly at limit
+        let desc = "x".repeat(120);
+        assert_eq!(truncate_description(&desc, 120), desc);
+
+        // Over limit - truncated with ellipsis
+        let desc = "x".repeat(130);
+        let result = truncate_description(&desc, 120);
+        assert!(result.ends_with('…'));
+        assert!(result.chars().count() <= 120);
+    }
+
+    #[test]
+    fn test_build_section_entries_with_descriptions() {
+        let headings = vec![
+            Heading {
+                level: 1,
+                text: "My Skill".to_string(),
+                file: PathBuf::from("SKILL.md"),
+                line_number: 1,
+            },
+            Heading {
+                level: 1,
+                text: "Clap Patterns".to_string(),
+                file: PathBuf::from("refs/clap.md"),
+                line_number: 1,
+            },
+            Heading {
+                level: 1,
+                text: "Error Handling".to_string(),
+                file: PathBuf::from("refs/errors.md"),
+                line_number: 1,
+            },
+        ];
+
+        let mut descriptions = HashMap::new();
+        descriptions.insert(
+            PathBuf::from("refs/clap.md"),
+            "Advanced argument parsing".to_string(),
+        );
+        // refs/errors.md has no description
+
+        let entries = build_section_entries(&headings, &descriptions);
+
+        assert_eq!(entries.len(), 4); // My Skill + References + 2 refs
+        assert_eq!(entries[0].text, "My Skill");
+        assert_eq!(entries[1].text, "References");
+        assert_eq!(
+            entries[2].text,
+            "Clap Patterns — Advanced argument parsing"
+        );
+        assert_eq!(entries[3].text, "Error Handling"); // No description
     }
 }
