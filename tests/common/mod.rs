@@ -14,43 +14,179 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use tempfile::TempDir;
 
-pub struct TestWorkspace {
-    pub dir: TempDir,
-    pub skill_dir: PathBuf,
-    #[allow(dead_code)]
-    pub skill_name: String,
+// ============================================================================
+// TestContext - Unified test setup and execution
+// ============================================================================
+
+/// Test execution result with stdout, stderr, and success status.
+pub struct TestResult {
+    pub stdout: String,
+    pub stderr: String,
+    pub success: bool,
 }
 
-pub fn init_workspace() -> TestWorkspace {
-    let dir = TempDir::new().expect("failed to create temp dir");
-    let root = dir.path();
+impl TestResult {
+    /// Assert the command succeeded, panic with output if not.
+    pub fn assert_success(&self, context: &str) {
+        assert!(
+            self.success,
+            "{} failed: stdout={}, stderr={}",
+            context, self.stdout, self.stderr
+        );
+    }
 
-    let skill_name = "test-skill".to_string();
-
-    // Create project structure with skill inside .skillc/skills/
-    let skillc_dir = root.join(".skillc");
-    fs::create_dir_all(&skillc_dir).expect("failed to create .skillc dir");
-    fs::write(skillc_dir.join("config.toml"), "").expect("failed to write config");
-
-    let skill_dir = skillc_dir.join("skills").join(&skill_name);
-    fs::create_dir_all(&skill_dir).expect("failed to create skill dir");
-
-    write_skill(&skill_dir);
-
-    TestWorkspace {
-        dir,
-        skill_dir,
-        skill_name,
+    /// Assert the command failed.
+    pub fn assert_failure(&self, context: &str) {
+        assert!(
+            !self.success,
+            "{} should have failed but succeeded: stdout={}",
+            context, self.stdout
+        );
     }
 }
 
-fn write_skill(skill_dir: &Path) {
-    fs::create_dir_all(skill_dir.join("docs")).expect("failed to create docs dir");
+/// Unified test context for integration tests.
+///
+/// Provides isolated temp directory, project setup, mock home, and mock agent.
+/// All paths are guaranteed to exist when accessed.
+///
+/// Per [[RFC-0009:C-ENV-OVERRIDE]], all tests are automatically isolated via
+/// `SKILLC_HOME` environment variable - no real home directory is ever accessed.
+pub struct TestContext {
+    temp: TempDir,
+    project_dir: Option<PathBuf>,
+    mock_home: PathBuf,
+    mock_agent: Option<PathBuf>,
+    rich_skill_name: Option<String>,
+}
 
-    fs::write(
-        skill_dir.join("SKILL.md"),
-        r#"---
-name: test-skill
+impl TestContext {
+    /// Create a new test context with isolated SKILLC_HOME.
+    ///
+    /// All skc commands run through this context will use the mock home
+    /// directory, ensuring complete isolation from the real home directory.
+    pub fn new() -> Self {
+        let temp = TempDir::new().expect("failed to create temp dir");
+        let mock_home = temp.path().join("mock_home");
+        fs::create_dir_all(&mock_home).expect("failed to create mock home");
+
+        Self {
+            temp,
+            project_dir: None,
+            mock_home,
+            mock_agent: None,
+            rich_skill_name: None,
+        }
+    }
+
+    /// Get the temp directory root path.
+    pub fn temp_path(&self) -> &Path {
+        self.temp.path()
+    }
+
+    /// Initialize project structure (.skillc/config.toml).
+    /// Returns self for chaining.
+    pub fn with_project(mut self) -> Self {
+        let project_dir = self.temp.path().to_path_buf();
+        let skillc_dir = project_dir.join(".skillc");
+        fs::create_dir_all(&skillc_dir).expect("failed to create .skillc dir");
+        fs::write(skillc_dir.join("config.toml"), "").expect("failed to write config");
+        self.project_dir = Some(project_dir);
+        self
+    }
+
+    /// Create mock agent directory for deployment testing.
+    /// Returns self for chaining.
+    pub fn with_mock_agent(mut self) -> Self {
+        let mock_agent = self.temp.path().join("mock-agent");
+        fs::create_dir_all(&mock_agent).expect("failed to create mock agent");
+        self.mock_agent = Some(mock_agent);
+        self
+    }
+
+    /// Get project directory. Panics if not initialized.
+    pub fn project_dir(&self) -> &Path {
+        self.project_dir
+            .as_ref()
+            .expect("project not initialized - call with_project() first")
+    }
+
+    /// Get mock home directory (always available).
+    pub fn mock_home(&self) -> &Path {
+        &self.mock_home
+    }
+
+    /// Get mock agent directory. Panics if not initialized.
+    pub fn mock_agent(&self) -> &Path {
+        self.mock_agent
+            .as_ref()
+            .expect("mock agent not initialized - call with_mock_agent() first")
+    }
+
+    /// Get mock agent path as string (for CLI args).
+    pub fn mock_agent_str(&self) -> &str {
+        self.mock_agent().to_str().expect("path should be UTF-8")
+    }
+
+    /// Create a skill in the project source store (.skillc/skills/<name>/).
+    pub fn create_skill(&self, name: &str) -> PathBuf {
+        let skills_dir = self.project_dir().join(".skillc").join("skills");
+        create_test_skill(&skills_dir, name)
+    }
+
+    /// Create an external skill (outside project, for import testing).
+    pub fn create_external_skill(&self, name: &str) -> PathBuf {
+        let external_dir = self.temp.path().join("external");
+        create_test_skill(&external_dir, name)
+    }
+
+    /// Create a skill with custom SKILL.md content.
+    pub fn create_skill_with_content(&self, name: &str, content: &str) -> PathBuf {
+        let skill_dir = self.project_dir().join(".skillc").join("skills").join(name);
+        fs::create_dir_all(&skill_dir).expect("failed to create skill dir");
+        fs::write(skill_dir.join("SKILL.md"), content).expect("failed to write SKILL.md");
+        skill_dir
+    }
+
+    /// Create a global skill in mock_home's .skillc/skills/.
+    pub fn create_global_skill(&self, name: &str) -> PathBuf {
+        let global_skills = self.mock_home().join(".skillc").join("skills");
+        fs::create_dir_all(&global_skills).expect("failed to create global skills dir");
+        let skill_dir = global_skills.join(name);
+        fs::create_dir_all(&skill_dir).expect("failed to create skill dir");
+        fs::write(
+            skill_dir.join("SKILL.md"),
+            format!(
+                "---\nname: {}\ndescription: Global test skill\n---\n# {}\n",
+                name, name
+            ),
+        )
+        .expect("failed to write SKILL.md");
+        skill_dir
+    }
+
+    /// Ensure global skills directory exists in mock_home (empty).
+    pub fn ensure_global_skills_dir(&self) {
+        let global_skills = self.mock_home().join(".skillc").join("skills");
+        fs::create_dir_all(&global_skills).expect("failed to create global skills dir");
+    }
+
+    /// Create a rich skill with multiple sections and docs for snapshot testing.
+    /// This creates the same skill structure as the legacy init_workspace().
+    pub fn with_rich_skill(mut self, name: &str) -> Self {
+        // Ensure project exists
+        if self.project_dir.is_none() {
+            self = self.with_project();
+        }
+
+        let skill_dir = self.project_dir().join(".skillc").join("skills").join(name);
+        fs::create_dir_all(skill_dir.join("docs")).expect("failed to create docs dir");
+
+        fs::write(
+            skill_dir.join("SKILL.md"),
+            format!(
+                r#"---
+name: {}
 description: A test skill
 ---
 
@@ -68,86 +204,138 @@ You need these things.
 
 API docs here.
 "#,
-    )
-    .expect("failed to write SKILL.md");
+                name
+            ),
+        )
+        .expect("failed to write SKILL.md");
 
-    fs::write(
-        skill_dir.join("docs").join("advanced.md"),
-        r#"# Advanced Topics
+        fs::write(
+            skill_dir.join("docs").join("advanced.md"),
+            r#"# Advanced Topics
 
 ## Performance
 
 Performance tips here.
 "#,
-    )
-    .expect("failed to write advanced.md");
-}
+        )
+        .expect("failed to write advanced.md");
 
-pub fn run_skc(dir: &Path, args: &[&str]) -> String {
-    let output = run_skc_output(dir, args);
-    if !output.status.success() {
-        panic!(
-            "skc {:?} failed: {}",
-            args,
-            String::from_utf8_lossy(&output.stderr)
-        );
-    }
-    normalize_text(&String::from_utf8_lossy(&output.stdout), dir)
-}
-
-#[allow(dead_code)]
-pub fn run_skc_allow_fail(dir: &Path, args: &[&str]) -> String {
-    let output = run_skc_output(dir, args);
-    normalize_text(&String::from_utf8_lossy(&output.stdout), dir)
-}
-
-#[allow(dead_code)]
-pub fn run_skc_json(dir: &Path, args: &[&str]) -> String {
-    let output = run_skc_output(dir, args);
-    if !output.status.success() {
-        panic!(
-            "skc {:?} failed: {}",
-            args,
-            String::from_utf8_lossy(&output.stderr)
-        );
-    }
-    normalize_json(&String::from_utf8_lossy(&output.stdout), dir)
-}
-
-fn run_skc_output(dir: &Path, args: &[&str]) -> std::process::Output {
-    run_skc_output_with_env(dir, args, &[])
-}
-
-fn run_skc_output_with_env(
-    dir: &Path,
-    args: &[&str],
-    extra_env: &[(&str, &str)],
-) -> std::process::Output {
-    let mut cmd = Command::new(assert_cmd::cargo::cargo_bin!("skc"));
-    cmd.args(args)
-        .current_dir(dir)
-        .env("NO_COLOR", "1")
-        .env("SKC_RUN_ID", "TEST-RUN-ID");
-
-    for (key, value) in extra_env {
-        cmd.env(key, value);
+        self.rich_skill_name = Some(name.to_string());
+        self
     }
 
-    cmd.output().expect("failed to run skc")
+    /// Get the name of the rich skill. Panics if not initialized.
+    pub fn skill_name(&self) -> &str {
+        self.rich_skill_name
+            .as_ref()
+            .expect("rich skill not initialized - call with_rich_skill() first")
+    }
+
+    /// Run skc command with automatic SKILLC_HOME isolation.
+    /// Uses project_dir as working directory (or temp_path if no project).
+    ///
+    /// Per [[RFC-0009:C-ENV-OVERRIDE]], all commands use `SKILLC_HOME` for cross-platform isolation.
+    pub fn run_skc(&self, args: &[&str]) -> TestResult {
+        let cwd = self.project_dir.as_deref().unwrap_or(self.temp.path());
+        self.run_skc_in(cwd, args)
+    }
+
+    /// Run skc command in a specific directory with automatic SKILLC_HOME isolation.
+    ///
+    /// Per [[RFC-0009:C-ENV-OVERRIDE]], all commands use `SKILLC_HOME` for cross-platform isolation.
+    pub fn run_skc_in(&self, cwd: &Path, args: &[&str]) -> TestResult {
+        let output = Command::new(assert_cmd::cargo::cargo_bin!("skc"))
+            .args(args)
+            .current_dir(cwd)
+            .env("NO_COLOR", "1")
+            .env("SKC_RUN_ID", "TEST-RUN-ID")
+            .env("SKILLC_HOME", &self.mock_home)
+            .output()
+            .expect("failed to run skc");
+
+        TestResult {
+            stdout: String::from_utf8_lossy(&output.stdout).to_string(),
+            stderr: String::from_utf8_lossy(&output.stderr).to_string(),
+            success: output.status.success(),
+        }
+    }
+
+    /// Run skc command with additional environment variables.
+    ///
+    /// Per [[RFC-0009:C-ENV-OVERRIDE]], SKILLC_HOME is always set for isolation.
+    pub fn run_skc_with_env(&self, args: &[&str], env: &[(&str, &str)]) -> TestResult {
+        let cwd = self.project_dir.as_deref().unwrap_or(self.temp.path());
+        self.run_skc_with_env_in(cwd, args, env)
+    }
+
+    /// Run skc command with additional environment variables in a specific directory.
+    ///
+    /// Per [[RFC-0009:C-ENV-OVERRIDE]], SKILLC_HOME is always set for isolation.
+    pub fn run_skc_with_env_in(
+        &self,
+        cwd: &Path,
+        args: &[&str],
+        env: &[(&str, &str)],
+    ) -> TestResult {
+        let mut cmd = Command::new(assert_cmd::cargo::cargo_bin!("skc"));
+        cmd.args(args)
+            .current_dir(cwd)
+            .env("NO_COLOR", "1")
+            .env("SKC_RUN_ID", "TEST-RUN-ID")
+            .env("SKILLC_HOME", &self.mock_home);
+
+        for (key, value) in env {
+            cmd.env(key, value);
+        }
+
+        let output = cmd.output().expect("failed to run skc");
+
+        TestResult {
+            stdout: String::from_utf8_lossy(&output.stdout).to_string(),
+            stderr: String::from_utf8_lossy(&output.stderr).to_string(),
+            success: output.status.success(),
+        }
+    }
+
+    /// Run skc and return normalized text output (for snapshots).
+    /// Panics if command fails.
+    pub fn run_skc_text(&self, args: &[&str]) -> String {
+        let result = self.run_skc(args);
+        if !result.success {
+            panic!("skc {:?} failed: stderr={}", args, result.stderr);
+        }
+        normalize_text(&result.stdout, self.temp.path())
+    }
+
+    /// Run skc and return normalized JSON output (for snapshots).
+    /// Panics if command fails.
+    pub fn run_skc_json(&self, args: &[&str]) -> String {
+        let result = self.run_skc(args);
+        if !result.success {
+            panic!("skc {:?} failed: stderr={}", args, result.stderr);
+        }
+        normalize_json(&result.stdout, self.temp.path())
+    }
+
+    /// Run skc and return normalized text output, allowing failure.
+    pub fn run_skc_text_allow_fail(&self, args: &[&str]) -> String {
+        let result = self.run_skc(args);
+        normalize_text(&result.stdout, self.temp.path())
+    }
 }
 
-/// Run skc with environment overrides for isolated testing.
-/// Returns (stdout, stderr, success).
-pub fn run_skc_isolated(dir: &Path, args: &[&str], env: &[(&str, &str)]) -> (String, String, bool) {
-    let output = run_skc_output_with_env(dir, args, env);
-    (
-        String::from_utf8_lossy(&output.stdout).to_string(),
-        String::from_utf8_lossy(&output.stderr).to_string(),
-        output.status.success(),
-    )
+impl Default for TestContext {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
-/// Create a minimal skill directory with SKILL.md.
+// ============================================================================
+// Standalone helpers (for specialized test cases)
+// ============================================================================
+
+/// Create a minimal skill directory with SKILL.md at an arbitrary path.
+/// Used for creating skills outside the project structure (e.g., in runtime dirs).
 pub fn create_minimal_skill(dir: &Path, name: &str) {
     let skill_dir = dir.join(name);
     fs::create_dir_all(&skill_dir).expect("failed to create skill dir");
@@ -158,23 +346,8 @@ pub fn create_minimal_skill(dir: &Path, name: &str) {
     .expect("failed to write SKILL.md");
 }
 
-/// Create a minimal skill in a project structure (`.skillc/skills/<name>/`).
-/// Returns the project root directory.
-pub fn create_project_skill(project_dir: &Path, name: &str) {
-    let skillc_dir = project_dir.join(".skillc");
-    fs::create_dir_all(&skillc_dir).expect("failed to create .skillc dir");
-    fs::write(skillc_dir.join("config.toml"), "").expect("failed to write config");
-
-    let skill_dir = skillc_dir.join("skills").join(name);
-    fs::create_dir_all(&skill_dir).expect("failed to create skill dir");
-    fs::write(
-        skill_dir.join("SKILL.md"),
-        format!("---\nname: {}\ndescription: test\n---\n# {}\n", name, name),
-    )
-    .expect("failed to write SKILL.md");
-}
-
 /// Create a test skill with triggers (for build tests).
+/// Used internally by TestContext.create_skill().
 pub fn create_test_skill(dir: &Path, name: &str) -> PathBuf {
     let skill_dir = dir.join(name);
     fs::create_dir_all(&skill_dir).expect("failed to create skill dir");
@@ -189,15 +362,8 @@ pub fn create_test_skill(dir: &Path, name: &str) -> PathBuf {
     skill_dir
 }
 
-/// Create a project structure with .skillc directory.
-pub fn create_project(dir: &Path) -> PathBuf {
-    let skillc_dir = dir.join(".skillc");
-    fs::create_dir_all(&skillc_dir).expect("failed to create .skillc dir");
-    fs::write(skillc_dir.join("config.toml"), "").expect("failed to write config");
-    dir.to_path_buf()
-}
-
 /// Get the path to the fallback logs database for a skill.
+/// Used by sync tests.
 pub fn fallback_db_path(project_dir: &Path, skill_name: &str) -> PathBuf {
     project_dir
         .join(".skillc")
@@ -207,16 +373,9 @@ pub fn fallback_db_path(project_dir: &Path, skill_name: &str) -> PathBuf {
         .join("logs.db")
 }
 
-/// Create a mock home directory inside project_dir for isolated testing.
-/// Returns the mock home path.
-pub fn create_mock_home(project_dir: &Path) -> PathBuf {
-    let mock_home = project_dir.join("mock_home");
-    fs::create_dir_all(&mock_home).expect("failed to create mock home");
-    mock_home
-}
-
 /// Get the path to the runtime logs database for a skill in a mock home.
-/// Uses the SSOT runtime location (~/.skillc/runtime/<skill>/)
+/// Uses the SSOT runtime location (~/.skillc/runtime/<skill>/).
+/// Used by sync tests.
 pub fn runtime_db_path(mock_home: &Path, skill_name: &str) -> PathBuf {
     mock_home
         .join(".skillc")

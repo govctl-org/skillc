@@ -1454,7 +1454,7 @@ checksum = "bbbb5d9659141646ae647b42fe094daf6c6192d1620870b449d9557f748b2daa"
 
 [[package]]
 name = "skillc"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "assert_cmd",
  "chrono",
@@ -1481,6 +1481,7 @@ dependencies = [
  "serde_yaml",
  "sha2",
  "strum",
+ "temp-env",
  "tempfile",
  "tokio",
  "toml",
@@ -1557,6 +1558,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
+]
+
+[[package]]
+name = "temp-env"
+version = "0.3.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "96374855068f47402c3121c6eed88d29cb1de8f3ab27090e273e420bdabcf050"
+dependencies = [
+ "parking_lot",
 ]
 
 [[package]]

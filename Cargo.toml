@@ -1,6 +1,6 @@
 [package]
 name = "skillc"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 description = "A development kit for Agent Skills - the open format for extending AI agent capabilities"
@@ -70,4 +70,5 @@ assert_cmd = "2"
 filetime = "0.2"
 insta = { version = "1", features = ["json"] }
 predicates = "3"
+temp-env = "0.3"
 tempfile = "3"

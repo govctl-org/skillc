@@ -1,0 +1,32 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-31-001"
+title = "Add SKILLC_HOME environment variable override"
+status = "done"
+created = "2026-01-31"
+started = "2026-01-31"
+completed = "2026-01-31"
+refs = ["RFC-0009"]
+
+[content]
+description = "Add `SKILLC_HOME` environment variable to override home directory detection, enabling cross-platform test isolation and custom installation locations."
+
+[[content.acceptance_criteria]]
+text = "`SKILLC_HOME` env var overrides home directory detection"
+status = "done"
+category = "added"
+
+[[content.acceptance_criteria]]
+text = "Cross-platform test isolation using `SKILLC_HOME`"
+status = "done"
+category = "chore"
+
+[[content.acceptance_criteria]]
+text = "All `cfg(unix)` tests become cross-platform"
+status = "done"
+category = "chore"
+
+[[content.acceptance_criteria]]
+text = "All tests pass"
+status = "done"
+category = "chore"

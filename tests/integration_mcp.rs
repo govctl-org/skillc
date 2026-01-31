@@ -4,12 +4,11 @@
 
 mod common;
 
-use common::create_minimal_skill;
+use common::TestContext;
 use serde_json::{Value, json};
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Child, Command, Stdio};
 use std::time::Duration;
-use tempfile::TempDir;
 
 /// MCP client for testing
 struct McpTestClient {
@@ -39,34 +38,14 @@ impl McpTestClient {
         }
     }
 
-    /// Spawn with custom environment
-    fn spawn_with_env(env: &[(&str, &str)]) -> Self {
-        let mut cmd = Command::new(assert_cmd::cargo::cargo_bin!("skc"));
-        cmd.args(["mcp"])
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped());
-
-        for (key, value) in env {
-            cmd.env(key, value);
-        }
-
-        let mut child = cmd.spawn().expect("failed to spawn skc mcp");
-        let stdout = child.stdout.take().expect("stdout not available");
-        let reader = BufReader::new(stdout);
-
-        Self {
-            child,
-            reader,
-            next_id: 1,
-        }
-    }
-
-    /// Spawn with custom working directory
-    fn spawn_in_dir(dir: &std::path::Path) -> Self {
+    /// Spawn with TestContext for full isolation (SKILLC_HOME + working directory).
+    ///
+    /// Per [[RFC-0009:C-ENV-OVERRIDE]], uses `SKILLC_HOME` for cross-platform isolation.
+    fn spawn_with_context(ctx: &TestContext) -> Self {
         let mut child = Command::new(assert_cmd::cargo::cargo_bin!("skc"))
             .args(["mcp"])
-            .current_dir(dir)
+            .current_dir(ctx.project_dir())
+            .env("SKILLC_HOME", ctx.mock_home())
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -232,18 +211,16 @@ fn test_mcp_list_tools() {
 /// Test skc_outline tool
 #[test]
 fn test_mcp_outline_tool() {
-    let temp = TempDir::new().expect("create temp dir");
-    let skill_name = "mcp-test-skill";
-    common::create_project_skill(temp.path(), skill_name);
+    let ctx = TestContext::new().with_project();
+    ctx.create_skill("mcp-test-skill");
 
-    // Run MCP server from project directory, use skill name (not path)
-    let mut client = McpTestClient::spawn_in_dir(temp.path());
+    let mut client = McpTestClient::spawn_with_context(&ctx);
     client.initialize();
 
     let response = client.call_tool(
         "skc_outline",
         json!({
-            "skill": skill_name
+            "skill": "mcp-test-skill"
         }),
     );
 
@@ -265,18 +242,16 @@ fn test_mcp_outline_tool() {
 /// Test skc_show tool
 #[test]
 fn test_mcp_show_tool() {
-    let temp = TempDir::new().expect("create temp dir");
-    create_minimal_skill(temp.path(), "show-skill");
-    let skill_path = temp.path().join("show-skill");
+    let ctx = TestContext::new().with_project();
+    ctx.create_skill("show-skill");
 
-    // Use direct path to skill, no env var needed
-    let mut client = McpTestClient::spawn();
+    let mut client = McpTestClient::spawn_with_context(&ctx);
     client.initialize();
 
     let response = client.call_tool(
         "skc_show",
         json!({
-            "skill": skill_path.to_str().expect("path to str"),
+            "skill": "show-skill",
             "section": "show-skill"
         }),
     );
@@ -291,18 +266,16 @@ fn test_mcp_show_tool() {
 /// Test skc_show tool with non-existent section
 #[test]
 fn test_mcp_show_tool_not_found() {
-    let temp = TempDir::new().expect("create temp dir");
-    create_minimal_skill(temp.path(), "show-skill-2");
-    let skill_path = temp.path().join("show-skill-2");
+    let ctx = TestContext::new().with_project();
+    ctx.create_skill("show-skill-2");
 
-    // Use direct path to skill, no env var needed
-    let mut client = McpTestClient::spawn();
+    let mut client = McpTestClient::spawn_with_context(&ctx);
     client.initialize();
 
     let response = client.call_tool(
         "skc_show",
         json!({
-            "skill": skill_path.to_str().expect("path to str"),
+            "skill": "show-skill-2",
             "section": "nonexistent-section-xyz"
         }),
     );
@@ -319,18 +292,16 @@ fn test_mcp_show_tool_not_found() {
 /// Test skc_sources tool
 #[test]
 fn test_mcp_sources_tool() {
-    let temp = TempDir::new().expect("create temp dir");
-    let skill_name = "sources-skill";
-    common::create_project_skill(temp.path(), skill_name);
+    let ctx = TestContext::new().with_project();
+    ctx.create_skill("sources-skill");
 
-    // Run MCP server from project directory, use skill name (not path)
-    let mut client = McpTestClient::spawn_in_dir(temp.path());
+    let mut client = McpTestClient::spawn_with_context(&ctx);
     client.initialize();
 
     let response = client.call_tool(
         "skc_sources",
         json!({
-            "skill": skill_name
+            "skill": "sources-skill"
         }),
     );
 
@@ -352,18 +323,16 @@ fn test_mcp_sources_tool() {
 /// Test skc_lint tool
 #[test]
 fn test_mcp_lint_tool() {
-    let temp = TempDir::new().expect("create temp dir");
-    create_minimal_skill(temp.path(), "lint-skill");
-    let skill_path = temp.path().join("lint-skill");
+    let ctx = TestContext::new().with_project();
+    ctx.create_skill("lint-skill");
 
-    // Use direct path to skill, no env var needed
-    let mut client = McpTestClient::spawn();
+    let mut client = McpTestClient::spawn_with_context(&ctx);
     client.initialize();
 
     let response = client.call_tool(
         "skc_lint",
         json!({
-            "skill": skill_path.to_str().expect("path to str")
+            "skill": "lint-skill"
         }),
     );
 
@@ -387,16 +356,12 @@ fn test_mcp_lint_tool() {
 }
 
 /// Test skc_init tool
-#[cfg(unix)]
 #[test]
 fn test_mcp_init_tool() {
-    let temp = TempDir::new().expect("create temp dir");
+    let ctx = TestContext::new().with_project();
+    ctx.ensure_global_skills_dir();
 
-    // Use HOME env var override to redirect global source store
-    let mock_home = common::create_mock_home(temp.path());
-
-    let mut client =
-        McpTestClient::spawn_with_env(&[("HOME", mock_home.to_str().expect("path to str"))]);
+    let mut client = McpTestClient::spawn_with_context(&ctx);
     client.initialize();
 
     let response = client.call_tool(
@@ -426,7 +391,8 @@ fn test_mcp_init_tool() {
     );
 
     // Verify skill was created in mock home's global source store
-    let expected_path = mock_home
+    let expected_path = ctx
+        .mock_home()
         .join(".skillc")
         .join("skills")
         .join("mcp-created-skill")
@@ -441,7 +407,9 @@ fn test_mcp_init_tool() {
 /// Test error handling for non-existent skill
 #[test]
 fn test_mcp_tool_skill_not_found() {
-    let mut client = McpTestClient::spawn();
+    // Use TestContext to isolate from real global store
+    let ctx = TestContext::new().with_project();
+    let mut client = McpTestClient::spawn_with_context(&ctx);
     client.initialize();
 
     let response = client.call_tool(
@@ -470,17 +438,16 @@ fn test_mcp_tool_skill_not_found() {
 /// Test skc_open tool
 #[test]
 fn test_mcp_open_tool() {
-    let temp = TempDir::new().expect("create temp dir");
-    create_minimal_skill(temp.path(), "open-skill");
-    let skill_path = temp.path().join("open-skill");
+    let ctx = TestContext::new().with_project();
+    ctx.create_skill("open-skill");
 
-    let mut client = McpTestClient::spawn();
+    let mut client = McpTestClient::spawn_with_context(&ctx);
     client.initialize();
 
     let response = client.call_tool(
         "skc_open",
         json!({
-            "skill": skill_path.to_str().expect("path to str"),
+            "skill": "open-skill",
             "path": "SKILL.md"
         }),
     );
@@ -502,16 +469,15 @@ fn test_mcp_open_tool() {
 /// Test skc_open tool with max_lines
 #[test]
 fn test_mcp_open_tool_with_max_lines() {
-    let temp = TempDir::new().expect("create temp dir");
-    let skill_name = "lines-skill";
-    common::create_project_skill(temp.path(), skill_name);
+    let ctx = TestContext::new().with_project();
+    ctx.create_skill("lines-skill");
 
     // Add more lines to the SKILL.md
-    let skill_md = temp
-        .path()
+    let skill_md = ctx
+        .project_dir()
         .join(".skillc")
         .join("skills")
-        .join(skill_name)
+        .join("lines-skill")
         .join("SKILL.md");
     let content = (1..=20)
         .map(|i| format!("Line {}", i))
@@ -520,19 +486,19 @@ fn test_mcp_open_tool_with_max_lines() {
     std::fs::write(
         &skill_md,
         format!(
-            "---\nname: {}\ndescription: test\n---\n# {}\n{}",
-            skill_name, skill_name, content
+            "---\nname: lines-skill\ndescription: test\n---\n# lines-skill\n{}",
+            content
         ),
     )
     .expect("write skill");
 
-    let mut client = McpTestClient::spawn_in_dir(temp.path());
+    let mut client = McpTestClient::spawn_with_context(&ctx);
     client.initialize();
 
     let response = client.call_tool(
         "skc_open",
         json!({
-            "skill": skill_name,
+            "skill": "lines-skill",
             "path": "SKILL.md",
             "max_lines": 5
         }),
@@ -557,25 +523,21 @@ fn test_mcp_open_tool_with_max_lines() {
 /// Test skc_outline tool with level filter
 #[test]
 fn test_mcp_outline_tool_with_level() {
-    let temp = TempDir::new().expect("create temp dir");
-    let skill_name = "level-skill";
+    let ctx = TestContext::new().with_project();
 
-    // Create skill in project structure
-    let skill_dir = temp.path().join(".skillc").join("skills").join(skill_name);
-    std::fs::create_dir_all(&skill_dir).expect("create skill dir");
-    std::fs::write(
-        skill_dir.join("SKILL.md"),
+    // Create skill with multiple heading levels
+    ctx.create_skill_with_content(
+        "level-skill",
         "---\nname: level-skill\ndescription: test\n---\n# H1\n## H2\n### H3\n#### H4",
-    )
-    .expect("write skill");
+    );
 
-    let mut client = McpTestClient::spawn_in_dir(temp.path());
+    let mut client = McpTestClient::spawn_with_context(&ctx);
     client.initialize();
 
     let response = client.call_tool(
         "skc_outline",
         json!({
-            "skill": skill_name,
+            "skill": "level-skill",
             "level": 2
         }),
     );
@@ -604,32 +566,28 @@ fn test_mcp_outline_tool_with_level() {
 /// Test skc_show tool with max_lines
 #[test]
 fn test_mcp_show_tool_with_max_lines() {
-    let temp = TempDir::new().expect("create temp dir");
-    let skill_name = "show-lines-skill";
+    let ctx = TestContext::new().with_project();
 
-    // Create skill in project structure
-    let skill_dir = temp.path().join(".skillc").join("skills").join(skill_name);
-    std::fs::create_dir_all(&skill_dir).expect("create skill dir");
+    // Create skill with many lines
     let lines = (1..=30)
         .map(|i| format!("Content line {}", i))
         .collect::<Vec<_>>()
         .join("\n");
-    std::fs::write(
-        skill_dir.join("SKILL.md"),
-        format!(
-            "---\nname: {}\ndescription: test\n---\n# Main Section\n{}",
-            skill_name, lines
+    ctx.create_skill_with_content(
+        "show-lines-skill",
+        &format!(
+            "---\nname: show-lines-skill\ndescription: test\n---\n# Main Section\n{}",
+            lines
         ),
-    )
-    .expect("write skill");
+    );
 
-    let mut client = McpTestClient::spawn_in_dir(temp.path());
+    let mut client = McpTestClient::spawn_with_context(&ctx);
     client.initialize();
 
     let response = client.call_tool(
         "skc_show",
         json!({
-            "skill": skill_name,
+            "skill": "show-lines-skill",
             "section": "Main Section",
             "max_lines": 5
         }),
@@ -654,17 +612,16 @@ fn test_mcp_show_tool_with_max_lines() {
 /// Test skc_stats tool
 #[test]
 fn test_mcp_stats_tool() {
-    let temp = TempDir::new().expect("create temp dir");
-    let skill_name = "stats-skill";
-    common::create_project_skill(temp.path(), skill_name);
+    let ctx = TestContext::new().with_project();
+    ctx.create_skill("stats-skill");
 
-    let mut client = McpTestClient::spawn_in_dir(temp.path());
+    let mut client = McpTestClient::spawn_with_context(&ctx);
     client.initialize();
 
     let response = client.call_tool(
         "skc_stats",
         json!({
-            "skill": skill_name
+            "skill": "stats-skill"
         }),
     );
 
@@ -685,11 +642,10 @@ fn test_mcp_stats_tool() {
 /// Test skc_stats tool with group_by
 #[test]
 fn test_mcp_stats_tool_group_by() {
-    let temp = TempDir::new().expect("create temp dir");
-    let skill_name = "stats-group-skill";
-    common::create_project_skill(temp.path(), skill_name);
+    let ctx = TestContext::new().with_project();
+    ctx.create_skill("stats-group-skill");
 
-    let mut client = McpTestClient::spawn_in_dir(temp.path());
+    let mut client = McpTestClient::spawn_with_context(&ctx);
     client.initialize();
 
     for group_by in &[
@@ -698,7 +654,7 @@ fn test_mcp_stats_tool_group_by() {
         let response = client.call_tool(
             "skc_stats",
             json!({
-                "skill": skill_name,
+                "skill": "stats-group-skill",
                 "group_by": group_by
             }),
         );
@@ -714,16 +670,11 @@ fn test_mcp_stats_tool_group_by() {
 /// Test skc_list tool
 #[test]
 fn test_mcp_list_tool() {
-    let temp = TempDir::new().expect("create temp dir");
-    common::create_project_skill(temp.path(), "list-mcp-skill");
+    let ctx = TestContext::new().with_project();
+    ctx.create_skill("list-mcp-skill");
+    ctx.ensure_global_skills_dir();
 
-    // Create mock home
-    let mock_home = common::create_mock_home(temp.path());
-    std::fs::create_dir_all(mock_home.join(".skillc").join("skills"))
-        .expect("create global skills dir");
-
-    let mut client =
-        McpTestClient::spawn_with_env(&[("HOME", mock_home.to_str().expect("path to str"))]);
+    let mut client = McpTestClient::spawn_with_context(&ctx);
     client.initialize();
 
     // Run from project directory context
@@ -747,16 +698,12 @@ fn test_mcp_list_tool() {
 /// Test skc_list tool with filters
 #[test]
 fn test_mcp_list_tool_with_filters() {
-    let temp = TempDir::new().expect("create temp dir");
-    common::create_project_skill(temp.path(), "filter-skill-1");
-    common::create_project_skill(temp.path(), "filter-skill-2");
+    let ctx = TestContext::new().with_project();
+    ctx.create_skill("filter-skill-1");
+    ctx.create_skill("filter-skill-2");
+    ctx.ensure_global_skills_dir();
 
-    let mock_home = common::create_mock_home(temp.path());
-    std::fs::create_dir_all(mock_home.join(".skillc").join("skills"))
-        .expect("create global skills dir");
-
-    let mut client =
-        McpTestClient::spawn_with_env(&[("HOME", mock_home.to_str().expect("path to str"))]);
+    let mut client = McpTestClient::spawn_with_context(&ctx);
     client.initialize();
 
     let response = client.call_tool(

@@ -2,34 +2,30 @@
 
 mod common;
 
-#[cfg(unix)]
-use common::create_mock_home;
-use common::run_skc_isolated;
+use common::TestContext;
 use std::fs;
-use tempfile::TempDir;
 
 /// Test `skc init` creates project structure.
 #[test]
 fn test_init_project() {
-    let temp = TempDir::new().expect("failed to create temp dir");
-    let project_dir = temp.path();
+    let ctx = TestContext::new();
 
-    let (stdout, _stderr, success) = run_skc_isolated(project_dir, &["init"], &[]);
+    let result = ctx.run_skc(&["init"]);
+    result.assert_success("init");
 
-    assert!(success, "init should succeed");
     assert!(
-        stdout.contains("Initialized skillc project"),
+        result.stdout.contains("Initialized skillc project"),
         "should report initialization: {}",
-        stdout
+        result.stdout
     );
 
     // Verify structure created
     assert!(
-        project_dir.join(".skillc").exists(),
+        ctx.temp_path().join(".skillc").exists(),
         ".skillc directory should exist"
     );
     assert!(
-        project_dir.join(".skillc").join("skills").exists(),
+        ctx.temp_path().join(".skillc").join("skills").exists(),
         ".skillc/skills directory should exist"
     );
 }
@@ -37,40 +33,42 @@ fn test_init_project() {
 /// Test `skc init` is idempotent.
 #[test]
 fn test_init_project_idempotent() {
-    let temp = TempDir::new().expect("failed to create temp dir");
-    let project_dir = temp.path();
+    let ctx = TestContext::new();
 
     // First init
-    let (_, _, success1) = run_skc_isolated(project_dir, &["init"], &[]);
-    assert!(success1, "first init should succeed");
+    let result1 = ctx.run_skc(&["init"]);
+    result1.assert_success("first init");
 
     // Second init should also succeed (idempotent)
-    let (stdout, _stderr, success2) = run_skc_isolated(project_dir, &["init"], &[]);
-    assert!(success2, "second init should succeed (idempotent)");
+    let result2 = ctx.run_skc(&["init"]);
+    result2.assert_success("second init");
     assert!(
-        stdout.contains("Initialized skillc project"),
+        result2.stdout.contains("Initialized skillc project"),
         "should report initialization: {}",
-        stdout
+        result2.stdout
     );
 }
 
 /// Test `skc init <name>` creates project-local skill.
 #[test]
 fn test_init_skill_local() {
-    let temp = TempDir::new().expect("failed to create temp dir");
-    let project_dir = temp.path();
+    let ctx = TestContext::new();
 
-    let (stdout, _stderr, success) = run_skc_isolated(project_dir, &["init", "my-skill"], &[]);
+    let result = ctx.run_skc(&["init", "my-skill"]);
+    result.assert_success("init skill");
 
-    assert!(success, "init skill should succeed");
     assert!(
-        stdout.contains("Created project skill 'my-skill'"),
+        result.stdout.contains("Created project skill 'my-skill'"),
         "should report skill creation: {}",
-        stdout
+        result.stdout
     );
 
     // Verify skill created
-    let skill_dir = project_dir.join(".skillc").join("skills").join("my-skill");
+    let skill_dir = ctx
+        .temp_path()
+        .join(".skillc")
+        .join("skills")
+        .join("my-skill");
     assert!(skill_dir.exists(), "skill directory should exist");
 
     let skill_md = skill_dir.join("SKILL.md");
@@ -95,25 +93,24 @@ fn test_init_skill_local() {
 /// Test `skc init <name>` creates project structure if not exists.
 #[test]
 fn test_init_skill_creates_project_structure() {
-    let temp = TempDir::new().expect("failed to create temp dir");
-    let project_dir = temp.path();
+    let ctx = TestContext::new();
 
     // No prior init - should still work
-    assert!(!project_dir.join(".skillc").exists());
+    assert!(!ctx.temp_path().join(".skillc").exists());
 
-    let (_, _, success) = run_skc_isolated(project_dir, &["init", "new-skill"], &[]);
+    let result = ctx.run_skc(&["init", "new-skill"]);
+    result.assert_success("init skill without prior init");
 
-    assert!(success, "init skill should succeed");
     assert!(
-        project_dir.join(".skillc").exists(),
+        ctx.temp_path().join(".skillc").exists(),
         ".skillc should be created"
     );
     assert!(
-        project_dir.join(".skillc").join("skills").exists(),
+        ctx.temp_path().join(".skillc").join("skills").exists(),
         ".skillc/skills should be created"
     );
     assert!(
-        project_dir
+        ctx.temp_path()
             .join(".skillc")
             .join("skills")
             .join("new-skill")
@@ -125,32 +122,25 @@ fn test_init_skill_creates_project_structure() {
 
 /// Test `skc init <name> --global` creates global skill.
 ///
-/// Uses HOME env var override to redirect global directory to temp.
-#[cfg(unix)]
+/// Uses SKILLC_HOME env var override to redirect global directory to temp.
 #[test]
 fn test_init_skill_global() {
-    let temp = TempDir::new().expect("failed to create temp dir");
-    let project_dir = temp.path();
+    let ctx = TestContext::new();
 
-    // Create mock home directory structure
-    let mock_home = create_mock_home(project_dir);
+    let result = ctx.run_skc(&["init", "global-skill", "--global"]);
+    result.assert_success("init global skill");
 
-    // Use HOME env var to redirect ~/.skillc/skills/ to temp
-    let (stdout, _stderr, success) = run_skc_isolated(
-        project_dir,
-        &["init", "global-skill", "--global"],
-        &[("HOME", mock_home.to_str().expect("path is UTF-8"))],
-    );
-
-    assert!(success, "init global skill should succeed");
     assert!(
-        stdout.contains("Created global skill 'global-skill'"),
+        result
+            .stdout
+            .contains("Created global skill 'global-skill'"),
         "should report global skill creation: {}",
-        stdout
+        result.stdout
     );
 
     // Verify skill created in mock global location
-    let skill_md = mock_home
+    let skill_md = ctx
+        .mock_home()
         .join(".skillc")
         .join("skills")
         .join("global-skill")
@@ -165,40 +155,40 @@ fn test_init_skill_global() {
 /// Test error when skill already exists.
 #[test]
 fn test_init_skill_already_exists() {
-    let temp = TempDir::new().expect("failed to create temp dir");
-    let project_dir = temp.path();
+    let ctx = TestContext::new();
 
     // First create the skill
-    let (_, _, success1) = run_skc_isolated(project_dir, &["init", "existing-skill"], &[]);
-    assert!(success1, "first init should succeed");
+    let result1 = ctx.run_skc(&["init", "existing-skill"]);
+    result1.assert_success("first init");
 
     // Second create should fail
-    let (_stdout, stderr, success2) =
-        run_skc_isolated(project_dir, &["init", "existing-skill"], &[]);
+    let result2 = ctx.run_skc(&["init", "existing-skill"]);
+    result2.assert_failure("init existing skill");
 
-    assert!(!success2, "init existing skill should fail");
     assert!(
-        stderr.contains("error[E050]"),
+        result2.stderr.contains("error[E050]"),
         "should return E050 error: {}",
-        stderr
+        result2.stderr
     );
     assert!(
-        stderr.contains("skill 'existing-skill' already exists"),
+        result2
+            .stderr
+            .contains("skill 'existing-skill' already exists"),
         "should have clear message: {}",
-        stderr
+        result2.stderr
     );
 }
 
 /// Test skill name with hyphens is title-cased correctly.
 #[test]
 fn test_init_skill_title_case() {
-    let temp = TempDir::new().expect("failed to create temp dir");
-    let project_dir = temp.path();
+    let ctx = TestContext::new();
 
-    let (_, _, success) = run_skc_isolated(project_dir, &["init", "my-cool-skill"], &[]);
-    assert!(success, "init should succeed");
+    let result = ctx.run_skc(&["init", "my-cool-skill"]);
+    result.assert_success("init");
 
-    let skill_md = project_dir
+    let skill_md = ctx
+        .temp_path()
         .join(".skillc")
         .join("skills")
         .join("my-cool-skill")
@@ -215,13 +205,13 @@ fn test_init_skill_title_case() {
 /// Test skill name with underscores is title-cased correctly.
 #[test]
 fn test_init_skill_title_case_underscore() {
-    let temp = TempDir::new().expect("failed to create temp dir");
-    let project_dir = temp.path();
+    let ctx = TestContext::new();
 
-    let (_, _, success) = run_skc_isolated(project_dir, &["init", "my_other_skill"], &[]);
-    assert!(success, "init should succeed");
+    let result = ctx.run_skc(&["init", "my_other_skill"]);
+    result.assert_success("init");
 
-    let skill_md = project_dir
+    let skill_md = ctx
+        .temp_path()
         .join(".skillc")
         .join("skills")
         .join("my_other_skill")

@@ -2,118 +2,89 @@
 
 mod common;
 
-use common::{init_workspace, run_skc, run_skc_allow_fail, run_skc_json};
+use common::TestContext;
 use insta::assert_snapshot;
 
-fn seed_logs() -> common::TestWorkspace {
-    let workspace = init_workspace();
+fn seed_logs(ctx: &TestContext) {
+    let skill = ctx.skill_name();
 
-    // Use skill name, not path (run from project directory)
-    let skill = &workspace.skill_name;
-    let root = workspace.dir.path();
-
-    let _ = run_skc(root, &["outline", skill]);
-    let _ = run_skc(root, &["show", skill, "--section", "Getting Started"]);
-    let _ = run_skc(root, &["open", skill, "docs/advanced.md"]);
-    let _ = run_skc_allow_fail(root, &["show", skill, "--section", "Missing"]);
-
-    workspace
+    let _ = ctx.run_skc(&["outline", skill]);
+    let _ = ctx.run_skc(&["show", skill, "--section", "Getting Started"]);
+    let _ = ctx.run_skc(&["open", skill, "docs/advanced.md"]);
+    // Allow failure for missing section
+    let _ = ctx.run_skc(&["show", skill, "--section", "Missing"]);
 }
 
-fn seed_logs_with_search() -> common::TestWorkspace {
-    let workspace = init_workspace();
-
-    // Use skill name, not path (run from project directory)
-    let skill = &workspace.skill_name;
-    let root = workspace.dir.path();
+fn seed_logs_with_search(ctx: &TestContext) {
+    let skill = ctx.skill_name();
 
     // Build the skill first (search requires a search index)
-    let _ = run_skc(
-        root,
-        &[
-            "build",
-            skill,
-            "--target",
-            root.to_str().expect("path is UTF-8"),
-        ],
-    );
+    let result = ctx.run_skc(&["build", skill, "--target", ctx.mock_agent_str()]);
+    result.assert_success("build for search");
 
     // Generate some search queries for stats --group-by search
-    let _ = run_skc(root, &["search", skill, "getting started"]);
-    let _ = run_skc(root, &["search", skill, "api"]);
-    let _ = run_skc(root, &["search", skill, "getting started"]); // duplicate query
-    let _ = run_skc(root, &["search", skill, "performance"]);
-
-    workspace
+    let _ = ctx.run_skc(&["search", skill, "getting started"]);
+    let _ = ctx.run_skc(&["search", skill, "api"]);
+    let _ = ctx.run_skc(&["search", skill, "getting started"]); // duplicate query
+    let _ = ctx.run_skc(&["search", skill, "performance"]);
 }
 
 #[test]
 fn test_stats_summary_text() {
-    let workspace = seed_logs();
-    // Use skill name, not path
-    let output = run_skc(workspace.dir.path(), &["stats", &workspace.skill_name]);
+    let ctx = TestContext::new().with_rich_skill("test-skill");
+    seed_logs(&ctx);
+    let output = ctx.run_skc_text(&["stats", ctx.skill_name()]);
     assert_snapshot!("summary_text", output);
 }
 
 #[test]
 fn test_stats_summary_json() {
-    let workspace = seed_logs();
-    // Use skill name, not path
-    let output = run_skc_json(
-        workspace.dir.path(),
-        &["stats", &workspace.skill_name, "--format", "json"],
-    );
+    let ctx = TestContext::new().with_rich_skill("test-skill");
+    seed_logs(&ctx);
+    let output = ctx.run_skc_json(&["stats", ctx.skill_name(), "--format", "json"]);
     assert_snapshot!("summary_json", output);
 }
 
 #[test]
 fn test_stats_queries_json() {
-    let workspace = seed_logs();
-    // Use skill name, not path
-    let skill = &workspace.skill_name;
-    let root = workspace.dir.path();
+    let ctx = TestContext::new().with_rich_skill("test-skill");
+    seed_logs(&ctx);
+    let skill = ctx.skill_name();
 
-    let sections = run_skc_json(
-        root,
-        &["stats", skill, "--group-by", "sections", "--format", "json"],
-    );
+    let sections =
+        ctx.run_skc_json(&["stats", skill, "--group-by", "sections", "--format", "json"]);
     assert_snapshot!("sections_json", sections);
 
-    let files = run_skc_json(
-        root,
-        &["stats", skill, "--group-by", "files", "--format", "json"],
-    );
+    let files = ctx.run_skc_json(&["stats", skill, "--group-by", "files", "--format", "json"]);
     assert_snapshot!("files_json", files);
 
-    let commands = run_skc_json(
-        root,
-        &["stats", skill, "--group-by", "commands", "--format", "json"],
-    );
+    let commands =
+        ctx.run_skc_json(&["stats", skill, "--group-by", "commands", "--format", "json"]);
     assert_snapshot!("commands_json", commands);
 
-    let projects = run_skc_json(
-        root,
-        &["stats", skill, "--group-by", "projects", "--format", "json"],
-    );
+    let projects =
+        ctx.run_skc_json(&["stats", skill, "--group-by", "projects", "--format", "json"]);
     assert_snapshot!("projects_json", projects);
 
-    let errors = run_skc_json(
-        root,
-        &["stats", skill, "--group-by", "errors", "--format", "json"],
-    );
+    let errors = ctx.run_skc_json(&["stats", skill, "--group-by", "errors", "--format", "json"]);
     assert_snapshot!("errors_json", errors);
 }
 
 /// Test stats --group-by search per [[RFC-0003:C-QUERIES]]
 #[test]
 fn test_stats_search_json() {
-    let workspace = seed_logs_with_search();
-    let skill = &workspace.skill_name;
-    let root = workspace.dir.path();
+    let ctx = TestContext::new()
+        .with_rich_skill("test-skill")
+        .with_mock_agent();
+    seed_logs_with_search(&ctx);
 
-    let search = run_skc_json(
-        root,
-        &["stats", skill, "--group-by", "search", "--format", "json"],
-    );
+    let search = ctx.run_skc_json(&[
+        "stats",
+        ctx.skill_name(),
+        "--group-by",
+        "search",
+        "--format",
+        "json",
+    ]);
     assert_snapshot!("search_json", search);
 }

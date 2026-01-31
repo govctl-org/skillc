@@ -1,12 +1,12 @@
 {
   "rfc_id": "RFC-0009",
   "title": "Configuration",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "status": "normative",
   "phase": "test",
   "owners": ["@govctl-org"],
   "created": "2026-01-30",
-  "updated": "2026-01-30",
+  "updated": "2026-01-31",
   "sections": [
     {
       "title": "Summary",
@@ -17,15 +17,22 @@
       "clauses": [
         "clauses/C-FILES.json",
         "clauses/C-RESOLUTION.json",
-        "clauses/C-TOKENIZER.json"
+        "clauses/C-TOKENIZER.json",
+        "clauses/C-ENV-OVERRIDE.json"
       ]
     }
   ],
   "changelog": [
     {
+      "version": "0.2.0",
+      "date": "2026-01-31",
+      "notes": "Add SKILLC_HOME override"
+    },
+    {
       "version": "0.1.0",
       "date": "2026-01-30",
       "notes": "Initial release"
     }
-  ]
+  ],
+  "signature": "e1e5f61c6203e7687beabd4d56b4d497a29cd181816aacd597a1411b458f2f6f"
 }

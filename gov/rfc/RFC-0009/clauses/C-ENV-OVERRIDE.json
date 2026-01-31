@@ -1,0 +1,8 @@
+{
+  "clause_id": "C-ENV-OVERRIDE",
+  "title": "Environment Variable Override",
+  "kind": "normative",
+  "status": "active",
+  "text": "The `SKILLC_HOME` environment variable, if set, MUST override the default home directory detection for all global paths.\n\nWhen `SKILLC_HOME` is set to a path (e.g., `/custom/home`):\n- `global_skillc_dir()` MUST return `$SKILLC_HOME/.skillc/` (e.g., `/custom/home/.skillc/`)\n- All derived paths (global source store, global runtime, etc.) MUST use this base\n- `find_project_root()` MUST exclude `$SKILLC_HOME` from project root detection\n\nWhen `SKILLC_HOME` is not set:\n- The implementation MUST fall back to `dirs::home_dir()` behavior\n\n**Rationale:** This enables:\n1. Cross-platform test isolation (HOME env var only works on Unix)\n2. Custom installation locations\n3. Portable/relocatable installations",
+  "since": "0.2.0"
+}

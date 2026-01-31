@@ -280,10 +280,19 @@ pub fn get_tokenizer() -> Tokenizer {
     Tokenizer::default()
 }
 
-/// Get the global skillc directory (~/.skillc/)
+/// Get the global skillc directory.
+///
+/// Per [[RFC-0009:C-ENV-OVERRIDE]], checks `SKILLC_HOME` first, then falls back to `~/.skillc/`.
+/// When `SKILLC_HOME` is set, it acts as the home directory override, so `.skillc` is appended.
 ///
 /// Returns error if home directory cannot be determined.
 pub fn global_skillc_dir() -> Result<PathBuf> {
+    // Check SKILLC_HOME override first (enables cross-platform test isolation)
+    // SKILLC_HOME acts as home directory override, so we append .skillc
+    if let Ok(skillc_home) = env::var("SKILLC_HOME") {
+        return Ok(PathBuf::from(skillc_home).join(".skillc"));
+    }
+
     let home = dirs::home_dir()
         .ok_or_else(|| SkillcError::Internal("could not determine home directory".to_string()))?;
     Ok(home.join(".skillc"))
@@ -297,14 +306,21 @@ pub fn global_source_store() -> Result<PathBuf> {
 /// Find project root by walking up from CWD, looking for `.skillc/` directory.
 ///
 /// Returns the project root directory (containing `.skillc/`) if found.
-/// Note: The home directory is excluded - `~/.skillc/` is the global store, not a project.
+/// Note: The home directory (or SKILLC_HOME) is excluded - its `.skillc/` is the global store, not a project.
 pub fn find_project_root() -> Option<PathBuf> {
-    let home = dirs::home_dir();
+    // Get the home directory to exclude from project root search
+    // If SKILLC_HOME is set, use that; otherwise use the real home
+    let excluded_home = if let Ok(skillc_home) = env::var("SKILLC_HOME") {
+        Some(PathBuf::from(skillc_home))
+    } else {
+        dirs::home_dir()
+    };
+
     let mut dir = env::current_dir().ok()?;
 
     loop {
-        // Don't treat home directory as project root (that's the global store)
-        if Some(&dir) != home.as_ref() && dir.join(".skillc").is_dir() {
+        // Don't treat home directory as project root (its .skillc is the global store)
+        if Some(&dir) != excluded_home.as_ref() && dir.join(".skillc").is_dir() {
             return Some(dir);
         }
         if !dir.pop() {

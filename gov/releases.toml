@@ -1,4 +1,12 @@
 [[releases]]
+version = "0.1.1"
+date = "2026-01-31"
+refs = [
+    "WI-2026-01-31-001",
+    "WI-2026-01-31-002",
+]
+
+[[releases]]
 version = "0.1.0"
 date = "2026-01-30"
 refs = [

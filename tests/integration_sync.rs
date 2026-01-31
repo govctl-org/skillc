@@ -4,13 +4,10 @@
 
 mod common;
 
-#[cfg(unix)]
-use common::{create_minimal_skill, create_mock_home, runtime_db_path};
-use common::{fallback_db_path, run_skc_isolated};
+use common::{TestContext, create_minimal_skill, fallback_db_path, runtime_db_path};
 use std::fs;
 use std::path::Path;
 use std::time::{Duration, SystemTime};
-use tempfile::TempDir;
 
 /// Threshold for "stale" logs in tests (2 days in seconds).
 const STALE_LOG_AGE_SECS: u64 = 2 * 24 * 3600;
@@ -22,7 +19,6 @@ fn create_fallback_logs(project_dir: &Path, skill_name: &str, count: usize) {
 }
 
 /// Create fallback logs with an offset to generate unique timestamps.
-#[cfg(unix)]
 fn create_fallback_logs_with_offset(
     project_dir: &Path,
     skill_name: &str,
@@ -93,44 +89,25 @@ fn age_file(path: &Path, age: Duration) {
     filetime::set_file_mtime(path, file_time).expect("failed to set file mtime");
 }
 
-/// Helper to create a mock home with runtime structure and run skc.
-///
-/// Returns (stdout, stderr, success, mock_home_path)
-#[cfg(unix)]
-fn run_with_mock_home(
-    project_dir: &Path,
-    args: &[&str],
-    skills: &[&str],
-) -> (String, String, bool, std::path::PathBuf) {
-    // Create mock home structure INSIDE the project_dir to avoid sharing between tests
-    let mock_home = project_dir.join("mock_home");
-    let mock_runtime = mock_home.join(".claude").join("skills");
+/// Helper to create a mock home with runtime structure using TestContext.
+fn setup_mock_runtime(ctx: &TestContext, skills: &[&str]) {
+    let mock_runtime = ctx.mock_home().join(".claude").join("skills");
     fs::create_dir_all(&mock_runtime).expect("failed to create mock runtime");
 
-    // Create skills in mock runtime
     for skill in skills {
         create_minimal_skill(&mock_runtime, skill);
     }
-
-    let (stdout, stderr, success) = run_skc_isolated(
-        project_dir,
-        args,
-        &[("HOME", mock_home.to_str().expect("path is UTF-8"))],
-    );
-
-    (stdout, stderr, success, mock_home)
 }
 
-#[cfg(unix)]
 #[test]
 fn test_sync_deletes_on_success() {
-    let temp = TempDir::new().expect("failed to create temp dir");
-    let project_dir = temp.path().to_path_buf();
+    let ctx = TestContext::new().with_project();
+    let project_dir = ctx.project_dir();
 
     // Create fallback logs
-    create_fallback_logs(&project_dir, "test-skill", 5);
+    create_fallback_logs(project_dir, "test-skill", 5);
 
-    let fallback_db = fallback_db_path(&project_dir, "test-skill");
+    let fallback_db = fallback_db_path(project_dir, "test-skill");
     assert!(fallback_db.exists(), "fallback db should exist before sync");
 
     // Verify entries were actually created
@@ -142,20 +119,22 @@ fn test_sync_deletes_on_success() {
         assert_eq!(count, 5, "fallback db should have 5 entries before sync");
     }
 
-    // Run sync with mock home (skill created there)
-    let (stdout, _stderr, success, mock_home) =
-        run_with_mock_home(&project_dir, &["sync"], &["test-skill"]);
+    // Setup mock runtime with skill
+    setup_mock_runtime(&ctx, &["test-skill"]);
 
-    assert!(success, "sync should succeed");
+    // Run sync with mock home
+    let result = ctx.run_skc(&["sync"]);
+
+    assert!(result.success, "sync should succeed");
     assert!(
-        stdout.contains("Synced 5 entries for 'test-skill'"),
+        result.stdout.contains("Synced 5 entries for 'test-skill'"),
         "should report synced entries: {}",
-        stdout
+        result.stdout
     );
     assert!(
-        stdout.contains("(local logs removed)"),
+        result.stdout.contains("(local logs removed)"),
         "should report local logs removed: {}",
-        stdout
+        result.stdout
     );
 
     // Verify fallback logs are deleted
@@ -165,7 +144,7 @@ fn test_sync_deletes_on_success() {
     );
 
     // Verify entries are in the runtime store (mock home's .claude/skills/)
-    let runtime_db = runtime_db_path(&mock_home, "test-skill");
+    let runtime_db = runtime_db_path(ctx.mock_home(), "test-skill");
     assert!(
         runtime_db.exists(),
         "runtime db should exist after sync at {}",
@@ -179,26 +158,27 @@ fn test_sync_deletes_on_success() {
     assert_eq!(count, 5, "runtime db should have 5 entries");
 }
 
-#[cfg(unix)]
 #[test]
 fn test_sync_dry_run_does_not_delete() {
-    let temp = TempDir::new().expect("failed to create temp dir");
-    let project_dir = temp.path().to_path_buf();
+    let ctx = TestContext::new().with_project();
+    let project_dir = ctx.project_dir();
 
-    create_fallback_logs(&project_dir, "test-skill", 3);
+    create_fallback_logs(project_dir, "test-skill", 3);
 
-    let fallback_db = fallback_db_path(&project_dir, "test-skill");
+    let fallback_db = fallback_db_path(project_dir, "test-skill");
     assert!(fallback_db.exists(), "fallback db should exist before sync");
 
-    // Run sync with --dry-run
-    let (stdout, _stderr, success, _) =
-        run_with_mock_home(&project_dir, &["sync", "--dry-run"], &["test-skill"]);
+    // Setup mock runtime
+    setup_mock_runtime(&ctx, &["test-skill"]);
 
-    assert!(success, "sync --dry-run should succeed");
+    // Run sync with --dry-run
+    let result = ctx.run_skc(&["sync", "--dry-run"]);
+
+    assert!(result.success, "sync --dry-run should succeed");
     assert!(
-        stdout.contains("Would sync") || stdout.contains("(dry run)"),
+        result.stdout.contains("Would sync") || result.stdout.contains("(dry run)"),
         "should indicate dry run: {}",
-        stdout
+        result.stdout
     );
 
     // Verify fallback logs are NOT deleted
@@ -210,43 +190,43 @@ fn test_sync_dry_run_does_not_delete() {
 
 #[test]
 fn test_sync_no_local_logs() {
-    let temp = TempDir::new().expect("failed to create temp dir");
-    let project_dir = temp.path();
+    let ctx = TestContext::new().with_project();
 
     // No fallback logs exist
-    let (stdout, _stderr, success) = run_skc_isolated(project_dir, &["sync"], &[]);
+    let result = ctx.run_skc(&["sync"]);
 
-    assert!(success, "sync with no logs should succeed");
+    assert!(result.success, "sync with no logs should succeed");
     assert!(
-        stdout.contains("No local logs to sync"),
+        result.stdout.contains("No local logs to sync"),
         "should report no logs: {}",
-        stdout
+        result.stdout
     );
 }
 
-#[cfg(unix)]
 #[test]
 fn test_sync_specific_skill_only() {
-    let temp = TempDir::new().expect("failed to create temp dir");
-    let project_dir = temp.path().to_path_buf();
+    let ctx = TestContext::new().with_project();
+    let project_dir = ctx.project_dir();
 
     // Create logs for multiple skills
-    create_fallback_logs(&project_dir, "skill-a", 3);
-    create_fallback_logs(&project_dir, "skill-b", 2);
+    create_fallback_logs(project_dir, "skill-a", 3);
+    create_fallback_logs(project_dir, "skill-b", 2);
+
+    // Setup mock runtime
+    setup_mock_runtime(&ctx, &["skill-a", "skill-b"]);
 
     // Sync only skill-a
-    let (stdout, _stderr, success, _) =
-        run_with_mock_home(&project_dir, &["sync", "skill-a"], &["skill-a", "skill-b"]);
+    let result = ctx.run_skc(&["sync", "skill-a"]);
 
-    assert!(success, "sync skill-a should succeed");
+    assert!(result.success, "sync skill-a should succeed");
     assert!(
-        stdout.contains("skill-a"),
+        result.stdout.contains("skill-a"),
         "should mention skill-a: {}",
-        stdout
+        result.stdout
     );
 
     // skill-b logs should still exist
-    let skill_b_db = fallback_db_path(&project_dir, "skill-b");
+    let skill_b_db = fallback_db_path(project_dir, "skill-b");
     assert!(
         skill_b_db.exists(),
         "skill-b logs should still exist after syncing only skill-a"
@@ -255,77 +235,71 @@ fn test_sync_specific_skill_only() {
 
 #[test]
 fn test_sync_specific_skill_no_logs_returns_error() {
-    let temp = TempDir::new().expect("failed to create temp dir");
-    let project_dir = temp.path();
+    let ctx = TestContext::new().with_project();
 
     // No logs for specified skill
-    let (_stdout, stderr, success) =
-        run_skc_isolated(project_dir, &["sync", "nonexistent-skill"], &[]);
+    let result = ctx.run_skc(&["sync", "nonexistent-skill"]);
 
-    assert!(!success, "sync nonexistent skill should fail");
+    assert!(!result.success, "sync nonexistent skill should fail");
     assert!(
-        stderr.contains("E040") || stderr.contains("No local logs found"),
+        result.stderr.contains("E040") || result.stderr.contains("No local logs found"),
         "should report error: {}",
-        stderr
+        result.stderr
     );
 }
 
-#[cfg(unix)]
 #[test]
 fn test_sync_multiple_skills() {
-    let temp = TempDir::new().expect("failed to create temp dir");
-    let project_dir = temp.path().to_path_buf();
+    let ctx = TestContext::new().with_project();
+    let project_dir = ctx.project_dir();
 
-    create_fallback_logs(&project_dir, "skill-a", 2);
-    create_fallback_logs(&project_dir, "skill-b", 3);
+    create_fallback_logs(project_dir, "skill-a", 2);
+    create_fallback_logs(project_dir, "skill-b", 3);
 
-    let (stdout, _stderr, success, _) =
-        run_with_mock_home(&project_dir, &["sync"], &["skill-a", "skill-b"]);
+    setup_mock_runtime(&ctx, &["skill-a", "skill-b"]);
 
-    assert!(success, "sync should succeed");
+    let result = ctx.run_skc(&["sync"]);
+
+    assert!(result.success, "sync should succeed");
     assert!(
-        stdout.contains("skill-a") && stdout.contains("skill-b"),
+        result.stdout.contains("skill-a") && result.stdout.contains("skill-b"),
         "should sync both skills: {}",
-        stdout
+        result.stdout
     );
 }
 
-#[cfg(unix)]
 #[test]
 fn test_sync_deduplication() {
-    let temp = TempDir::new().expect("failed to create temp dir");
-    let project_dir = temp.path().to_path_buf();
+    let ctx = TestContext::new().with_project();
+    let project_dir = ctx.project_dir();
 
-    create_fallback_logs(&project_dir, "test-skill", 3);
+    create_fallback_logs(project_dir, "test-skill", 3);
+
+    setup_mock_runtime(&ctx, &["test-skill"]);
 
     // First sync
-    let (stdout1, _stderr, success, mock_home) =
-        run_with_mock_home(&project_dir, &["sync"], &["test-skill"]);
-    assert!(success, "first sync should succeed");
+    let result1 = ctx.run_skc(&["sync"]);
+    assert!(result1.success, "first sync should succeed");
     assert!(
-        stdout1.contains("Synced 3 entries"),
+        result1.stdout.contains("Synced 3 entries"),
         "should sync 3 entries: {}",
-        stdout1
+        result1.stdout
     );
 
     // Create more fallback logs with DIFFERENT timestamps (to avoid dedup)
-    create_fallback_logs_with_offset(&project_dir, "test-skill", 2, 10);
+    create_fallback_logs_with_offset(project_dir, "test-skill", 2, 10);
 
     // Second sync (should only sync new entries)
-    let (stdout2, _stderr, success) = run_skc_isolated(
-        &project_dir,
-        &["sync"],
-        &[("HOME", mock_home.to_str().expect("path to str"))],
-    );
-    assert!(success, "second sync should succeed");
+    let result2 = ctx.run_skc(&["sync"]);
+    assert!(result2.success, "second sync should succeed");
     assert!(
-        stdout2.contains("Synced 2 entries"),
+        result2.stdout.contains("Synced 2 entries"),
         "should sync only 2 new entries: {}",
-        stdout2
+        result2.stdout
     );
 
     // Verify total count
-    let runtime_db = runtime_db_path(&mock_home, "test-skill");
+    let runtime_db = runtime_db_path(ctx.mock_home(), "test-skill");
     let conn = rusqlite::Connection::open(&runtime_db).expect("failed to open db");
     let count: i64 = conn
         .query_row("SELECT COUNT(*) FROM access_log", [], |row| row.get(0))
@@ -333,22 +307,25 @@ fn test_sync_deduplication() {
     assert_eq!(count, 5, "should have 5 total entries");
 }
 
-#[cfg(unix)]
 #[test]
 fn test_sync_nonexistent_skill_in_runtime() {
-    let temp = TempDir::new().expect("failed to create temp dir");
-    let project_dir = temp.path().to_path_buf();
+    let ctx = TestContext::new().with_project();
+    let project_dir = ctx.project_dir();
 
     // Create logs for a skill that doesn't exist in runtime
-    create_fallback_logs(&project_dir, "new-skill", 2);
+    create_fallback_logs(project_dir, "new-skill", 2);
+
+    // Setup mock home but NO skills pre-created
+    let mock_runtime = ctx.mock_home().join(".claude").join("skills");
+    fs::create_dir_all(&mock_runtime).expect("failed to create mock runtime");
 
     // Sync should create the destination
-    let (_stdout, _stderr, success, mock_home) = run_with_mock_home(&project_dir, &["sync"], &[]); // No skills pre-created
+    let result = ctx.run_skc(&["sync"]);
 
-    assert!(success, "sync should succeed even for new skill");
+    assert!(result.success, "sync should succeed even for new skill");
 
     // Verify destination was created
-    let runtime_db = runtime_db_path(&mock_home, "new-skill");
+    let runtime_db = runtime_db_path(ctx.mock_home(), "new-skill");
     assert!(
         runtime_db.exists(),
         "destination should be created at {}",
@@ -356,60 +333,51 @@ fn test_sync_nonexistent_skill_in_runtime() {
     );
 }
 
-#[cfg(unix)]
 #[test]
 fn test_stale_warning_emitted_for_old_logs() {
-    let temp = TempDir::new().expect("failed to create temp dir");
-    let project_dir = temp.path().to_path_buf();
+    let ctx = TestContext::new().with_project();
+    let project_dir = ctx.project_dir();
 
     // Create skill in project source store
-    let skills_dir = project_dir.join(".skillc").join("skills");
-    fs::create_dir_all(&skills_dir).expect("create skills dir");
-    create_minimal_skill(&skills_dir, "test-skill");
+    ctx.create_skill("test-skill");
 
-    create_fallback_logs(&project_dir, "test-skill", 1);
+    create_fallback_logs(project_dir, "test-skill", 1);
 
     // Age the logs to make them stale
-    let fallback_db = fallback_db_path(&project_dir, "test-skill");
+    let fallback_db = fallback_db_path(project_dir, "test-skill");
     age_file(&fallback_db, Duration::from_secs(STALE_LOG_AGE_SECS));
 
     // Run a command that triggers logging - should warn about stale logs
-    let mock_home = create_mock_home(&project_dir);
-    // Use 'outline' which triggers log_access_with_fallback
-    let (_stdout, stderr, _success) = run_skc_isolated(
-        &project_dir,
-        &["outline", "test-skill"],
-        &[("HOME", mock_home.to_str().expect("path to str"))],
-    );
+    let result = ctx.run_skc(&["outline", "test-skill"]);
 
     assert!(
-        stderr.contains("stale") || stderr.contains("Local logs"),
+        result.stderr.contains("stale") || result.stderr.contains("Local logs"),
         "should warn about stale logs: {}",
-        stderr
+        result.stderr
     );
 }
 
 #[test]
 fn test_stale_warning_not_emitted_for_fresh_logs() {
-    let temp = TempDir::new().expect("failed to create temp dir");
-    let project_dir = temp.path();
+    let ctx = TestContext::new().with_project();
+    let project_dir = ctx.project_dir();
 
     create_fallback_logs(project_dir, "test-skill", 1);
     // Logs are fresh (just created)
 
-    let (_stdout, stderr, _success) = run_skc_isolated(project_dir, &["stats", "test-skill"], &[]);
+    let result = ctx.run_skc(&["stats", "test-skill"]);
 
     assert!(
-        !stderr.contains("stale") && !stderr.contains("Local logs"),
+        !result.stderr.contains("stale") && !result.stderr.contains("Local logs"),
         "should not warn about fresh logs: {}",
-        stderr
+        result.stderr
     );
 }
 
 #[test]
 fn test_stale_warning_once_per_invocation() {
-    let temp = TempDir::new().expect("failed to create temp dir");
-    let project_dir = temp.path();
+    let ctx = TestContext::new().with_project();
+    let project_dir = ctx.project_dir();
 
     create_fallback_logs(project_dir, "skill-a", 1);
     create_fallback_logs(project_dir, "skill-b", 1);
@@ -424,14 +392,15 @@ fn test_stale_warning_once_per_invocation() {
         Duration::from_secs(STALE_LOG_AGE_SECS),
     );
 
-    let (_stdout, stderr, _success) = run_skc_isolated(project_dir, &["stats", "skill-a"], &[]);
+    let result = ctx.run_skc(&["stats", "skill-a"]);
 
     // Should only warn once, not per-skill
-    let warning_count = stderr.matches("stale").count() + stderr.matches("Local logs").count();
+    let warning_count =
+        result.stderr.matches("stale").count() + result.stderr.matches("Local logs").count();
     assert!(
         warning_count <= 1,
         "should warn at most once: {} (count: {})",
-        stderr,
+        result.stderr,
         warning_count
     );
 }

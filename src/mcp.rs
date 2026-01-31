@@ -3,7 +3,8 @@
 //! Provides structured agent interface via Model Context Protocol.
 //! Uses the official Rust SDK from <https://github.com/modelcontextprotocol/rust-sdk>
 
-use crate::config::{get_target_path, global_source_store};
+use crate::config::get_target_path;
+use crate::resolver::resolve_skill;
 use crate::{InitOptions, LintOptions, OutputFormat, QueryType, StatsOptions};
 use rmcp::ErrorData as McpError;
 use rmcp::handler::server::tool::ToolRouter;
@@ -13,7 +14,6 @@ use rmcp::transport::stdio;
 use rmcp::{ServerHandler, ServiceExt, tool, tool_handler, tool_router};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
 
 // Use core Result to avoid conflict with crate's Result type alias
 type McpResult<T> = core::result::Result<T, McpError>;
@@ -319,17 +319,9 @@ impl SkillcServer {
         description = "Compile skill to target platform (claude, cursor). Returns {success, output_path}."
     )]
     async fn skc_build(&self, params: Parameters<BuildParams>) -> McpResult<CallToolResult> {
-        // Resolve source
-        let source = {
-            let path = PathBuf::from(&params.0.skill);
-            if path.exists() && path.is_dir() {
-                path
-            } else {
-                global_source_store()
-                    .map_err(to_mcp_err)?
-                    .join(&params.0.skill)
-            }
-        };
+        // Resolve source using proper resolver (checks project store first)
+        let resolved = resolve_skill(&params.0.skill).map_err(to_mcp_err)?;
+        let source = resolved.source_dir;
 
         // Resolve runtime (use target param or default to claude)
         let target = params.0.target.as_deref().unwrap_or("claude");
@@ -434,17 +426,9 @@ impl SkillcServer {
         annotations(read_only_hint = true)
     )]
     async fn skc_lint(&self, params: Parameters<LintParams>) -> McpResult<CallToolResult> {
-        // Resolve skill path
-        let skill_path = {
-            let path = PathBuf::from(&params.0.skill);
-            if path.exists() && path.is_dir() {
-                path
-            } else {
-                global_source_store()
-                    .map_err(to_mcp_err)?
-                    .join(&params.0.skill)
-            }
-        };
+        // Resolve skill using proper resolver (checks project store first)
+        let resolved = resolve_skill(&params.0.skill).map_err(to_mcp_err)?;
+        let skill_path = resolved.source_dir;
 
         let options = LintOptions {
             force: params.0.force,

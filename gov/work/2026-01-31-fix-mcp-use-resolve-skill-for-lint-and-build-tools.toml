@@ -1,0 +1,26 @@
+[govctl]
+schema = 1
+id = "WI-2026-01-31-002"
+title = "fix(mcp): use resolve_skill for lint and build tools"
+status = "done"
+created = "2026-01-31"
+started = "2026-01-31"
+completed = "2026-01-31"
+
+[content]
+description = "Fix MCP skc_lint and skc_build to use resolve_skill() instead of global_source_store(), enabling project-local skill resolution. Refactor MCP tests to use spawn_with_context() for consistent isolation."
+
+[[content.acceptance_criteria]]
+text = "MCP lint/build use resolve_skill()"
+status = "done"
+category = "fixed"
+
+[[content.acceptance_criteria]]
+text = "MCP tests use spawn_with_context()"
+status = "done"
+category = "chore"
+
+[[content.acceptance_criteria]]
+text = "All tests pass"
+status = "done"
+category = "chore"

@@ -210,36 +210,48 @@ mod tests {
 
     #[test]
     fn test_resolve_skill_not_found() {
-        let result = resolve_skill("nonexistent-skill-12345");
-        assert!(result.is_err());
-        let err = result.unwrap_err();
-        assert_eq!(err.code(), crate::error::ErrorCode::E001);
+        let temp = TempDir::new().expect("failed to create temp dir");
+        temp_env::with_var("SKILLC_HOME", Some(temp.path()), || {
+            let result = resolve_skill("nonexistent-skill-12345");
+            assert!(result.is_err());
+            let err = result.unwrap_err();
+            assert_eq!(err.code(), crate::error::ErrorCode::E001);
+        });
     }
 
     #[test]
     fn test_resolve_skill_rejects_relative_paths() {
-        // Even relative paths with slashes should be rejected
-        let result = resolve_skill("./my-skill");
-        assert!(result.is_err());
-        let err = result.unwrap_err();
-        assert_eq!(err.code(), crate::error::ErrorCode::E001);
-        assert!(err.to_string().contains("use skill name, not path"));
+        let temp = TempDir::new().expect("failed to create temp dir");
+        temp_env::with_var("SKILLC_HOME", Some(temp.path()), || {
+            // Even relative paths with slashes should be rejected
+            let result = resolve_skill("./my-skill");
+            assert!(result.is_err());
+            let err = result.unwrap_err();
+            assert_eq!(err.code(), crate::error::ErrorCode::E001);
+            assert!(err.to_string().contains("use skill name, not path"));
+        });
     }
 
     #[test]
     fn test_try_project_source_store_no_project() {
-        // When no .skillc/skills/ exists, should return None
-        let result = try_project_source_store("nonexistent").expect("test operation");
-        assert!(result.is_none());
+        let temp = TempDir::new().expect("failed to create temp dir");
+        temp_env::with_var("SKILLC_HOME", Some(temp.path()), || {
+            // When no .skillc/skills/ exists, should return None
+            let result = try_project_source_store("nonexistent").expect("test operation");
+            assert!(result.is_none());
+        });
     }
 
     #[test]
     fn test_try_project_source_store_rejects_paths() {
-        // Paths should return None (not be interpreted as skill names)
-        let result = try_project_source_store("/some/path").expect("test operation");
-        assert!(result.is_none());
+        let temp = TempDir::new().expect("failed to create temp dir");
+        temp_env::with_var("SKILLC_HOME", Some(temp.path()), || {
+            // Paths should return None (not be interpreted as skill names)
+            let result = try_project_source_store("/some/path").expect("test operation");
+            assert!(result.is_none());
 
-        let result = try_project_source_store("./relative").expect("test operation");
-        assert!(result.is_none());
+            let result = try_project_source_store("./relative").expect("test operation");
+            assert!(result.is_none());
+        });
     }
 }
