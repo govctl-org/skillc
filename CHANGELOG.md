@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-01-31
+
 ### Added
 
 - SKL204 heading-first-h1 lint rule per [RFC-0008:C-REGISTRY](docs/rfc/RFC-0008.md#rfc-0008c-registry) (WI-2026-01-31-003)
