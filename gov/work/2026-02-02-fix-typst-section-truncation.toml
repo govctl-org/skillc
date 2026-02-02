@@ -1,0 +1,18 @@
+[govctl]
+schema = 1
+id = "WI-2026-02-02-001"
+title = "fix typst section truncation"
+status = "done"
+created = "2026-02-02"
+started = "2026-02-02"
+completed = "2026-02-02"
+
+[content]
+description = """
+Fix index-based section extraction to ignore headings inside code blocks so
+`skc show` returns full section content for typst docs."""
+
+[[content.acceptance_criteria]]
+text = "Index-based section extraction now correctlyignores headings inside code blocks"
+status = "done"
+category = "fixed"

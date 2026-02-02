@@ -6,11 +6,11 @@ use crate::config::{ensure_dir, get_cwd};
 use crate::error::{Result, SkillcError};
 use crate::index::{self, SCHEMA_VERSION};
 use crate::logging::{LogEntry, get_run_id, init_log_db, log_access_with_fallback};
+use crate::markdown;
 use crate::resolver::{ResolvedSkill, resolve_skill};
 use crate::{OutputFormat, verbose};
 use chrono::Utc;
 use crossterm::style::Stylize;
-use lazy_regex::{Lazy, Regex, lazy_regex};
 use rusqlite::{Connection, params};
 use serde::Serialize;
 use std::fs;
@@ -18,9 +18,6 @@ use std::io::IsTerminal;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 use walkdir::WalkDir;
-
-/// Regex for parsing markdown headings (validated at compile time).
-static HEADING_RE: Lazy<Regex> = lazy_regex!(r"^(#{1,6})\s+(.+)$");
 
 /// Search result entry.
 #[derive(Debug, Serialize)]
@@ -356,22 +353,12 @@ fn index_markdown(conn: &Connection, source_dir: &Path, file_path: &Path) -> Res
 
     let lines: Vec<&str> = content.lines().collect();
 
-    // Find all headings with their positions
-    let mut headings: Vec<(usize, usize, String)> = Vec::new(); // (line_num, level, text)
-    for (i, line) in lines.iter().enumerate() {
-        if let Some(caps) = HEADING_RE.captures(line) {
-            let level = caps
-                .get(1)
-                .ok_or_else(|| SkillcError::Internal("regex group 1 missing".into()))?
-                .as_str()
-                .len();
-            let text = caps
-                .get(2)
-                .ok_or_else(|| SkillcError::Internal("regex group 2 missing".into()))?
-                .as_str()
-                .to_string();
-            headings.push((i, level, text));
-        }
+    // Find all headings with their positions using AST parsing.
+    // This avoids false positives from code blocks.
+    let mut headings: Vec<(usize, usize, String)> = Vec::new(); // (line_idx, level, text)
+    for heading in markdown::extract_headings(&content) {
+        let line_idx = heading.line.saturating_sub(1);
+        headings.push((line_idx, heading.level, heading.text));
     }
 
     if headings.is_empty() {
@@ -716,6 +703,7 @@ fn build_fts_query(query: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tempfile::TempDir;
 
     #[test]
     fn test_build_fts_query_simple() {
@@ -743,5 +731,57 @@ mod tests {
         let path = PathBuf::from("/tmp/test-skill");
         let hash = compute_hash16(&path);
         assert_eq!(hash.len(), 16);
+    }
+
+    #[test]
+    fn test_index_markdown_ignores_code_block_headings() {
+        let temp = TempDir::new().unwrap();
+        let source_dir = temp.path();
+        let file_path = source_dir.join("perf.md");
+        let content = r#"# Title
+
+## Typst Performance Profiling
+
+```md
+## Not a heading
+```
+
+More text
+
+## Next Section
+Text
+"#;
+        std::fs::write(&file_path, content).unwrap();
+
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute(
+            "CREATE VIRTUAL TABLE sections USING fts5(file, section, content, tokenize='unicode61')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "CREATE TABLE headings (
+                id INTEGER PRIMARY KEY,
+                file TEXT NOT NULL,
+                text TEXT NOT NULL,
+                level INTEGER NOT NULL,
+                start_line INTEGER NOT NULL,
+                end_line INTEGER NOT NULL
+            )",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "CREATE INDEX idx_headings_text ON headings(text COLLATE NOCASE)",
+            [],
+        )
+        .unwrap();
+
+        index_markdown(&conn, source_dir, &file_path).unwrap();
+
+        let headings = index::query_headings(&conn, "Typst Performance Profiling", None).unwrap();
+        assert_eq!(headings.len(), 1);
+        assert_eq!(headings[0].start_line, 3);
+        assert_eq!(headings[0].end_line, 11);
     }
 }
