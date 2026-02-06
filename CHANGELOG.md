@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-02-07
+
 ### Fixed
 
 - Index-based section extraction now correctlyignores headings inside code blocks (WI-2026-02-02-001)
